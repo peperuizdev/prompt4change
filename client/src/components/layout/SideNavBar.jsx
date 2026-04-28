@@ -11,11 +11,6 @@ const navItems = [
 export default function SideNavBar() {
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-white border-r border-slate-100 flex flex-col p-4 space-y-2 z-40 font-['Inter'] text-sm tracking-wide">
-      <div className="px-2 py-4 mb-2">
-        <h2 className="text-sm font-bold text-[#003366] uppercase tracking-widest">Command Center</h2>
-        <p className="text-xs text-slate-400 mt-0.5">Water Crisis Intelligence Platform</p>
-      </div>
-
       <nav className="flex-1 space-y-1">
         {navItems.map(({ to, icon, label, fill }) => (
           <NavLink
