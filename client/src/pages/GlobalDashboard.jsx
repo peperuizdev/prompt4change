@@ -204,16 +204,8 @@ export default function GlobalDashboard() {
     <>
       <div className="flex" style={{ height: 'calc(100vh - 64px)', margin: '-40px' }}>
         <div className="flex-1 relative min-w-0">
-          {!selectedRegion && (
-            <div className="absolute top-4 left-4 z-[1000] bg-white/95 backdrop-blur rounded-xl border border-slate-200 shadow-lg p-4 max-w-xs">
-              <h2 className="font-bold text-[#003366] text-sm mb-1">Crisis hídrica global</h2>
-              <p className="text-xs text-slate-500">
-                35 zonas costeras con estrés hídrico crítico. Clic en cualquier punto para análisis multiagente en tiempo real.
-              </p>
-            </div>
-          )}
           {error && (
-            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
+            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
               Error: {error}
             </div>
           )}
