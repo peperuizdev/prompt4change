@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.connection import init_supabase
 from app.routes import ai_routes, health_routes, seacool_routes
+from app.routes import global_routes
 
 
 @asynccontextmanager
@@ -53,6 +54,11 @@ app.include_router(
     seacool_routes.router,
     prefix="/api/seacool",
     tags=["SeaCool AI"],
+)
+app.include_router(
+    global_routes.router,
+    prefix="/api/global",
+    tags=["SeaCool Global"],
 )
 
 

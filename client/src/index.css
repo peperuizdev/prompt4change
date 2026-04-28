@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet tiles broken by Tailwind base img reset */
+.leaflet-container img.leaflet-tile {
+  display: inline-block !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+.leaflet-container {
+  z-index: 0;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   background-color: #f8f9fa;
@@ -25,4 +35,9 @@ body {
 
 .sdg-card:hover {
   transform: translateY(-4px);
+}
+
+@keyframes dash-flow {
+  0%   { background-position: 0 0; }
+  100% { background-position: 16px 0; }
 }

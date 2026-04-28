@@ -8,3 +8,13 @@ export async function apiFetch(path, options = {}) {
   if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
   return res.json()
 }
+
+export const getRegions     = ()         => apiFetch('/api/global/regions')
+export const analyzeRegion  = (regionId) => apiFetch('/api/global/analyze', {
+  method: 'POST',
+  body: JSON.stringify({ region_id: regionId }),
+})
+export const simulateSeacool = (body)    => apiFetch('/api/seacool/simulate', {
+  method: 'POST',
+  body: JSON.stringify(body),
+})
