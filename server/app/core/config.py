@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     HF_TOKEN: str = ""
 
+    # --- External APIs ---
+    PEERINGDB_API_KEY: str = ""
+    ELECTRICITY_MAPS_API_KEY: str = ""   # https://electricitymaps.com/ (free tier)
+
     # --- Supabase ---
     SUPABASE_URL: str = ""
     SUPABASE_KEY: str = ""

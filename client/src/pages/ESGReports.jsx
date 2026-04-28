@@ -2,238 +2,240 @@ import { useEffect, useMemo, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import MetricCard from '../components/ui/MetricCard'
 import { getRegions } from '../api/client'
+import { useReports } from '../store'
+
+// Abrevia números grandes para que no se salgan de las cards
+function fmt(n) {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}k`
+  return String(n)
+}
+
+// ── Constantes ────────────────────────────────────────────────────────────────
 
 const ODS = [
-  {
-    num: 6,
-    color: '#26bde2',
-    icon: 'water_full',
-    title: 'Agua limpia',
-    desc: 'Acceso a agua potable para comunidades con estrés hídrico crítico.',
-  },
-  {
-    num: 7,
-    color: '#fcc30b',
-    icon: 'bolt',
-    title: 'Energía limpia',
-    desc: 'Valorización del calor residual de datacenters en economía circular.',
-  },
-  {
-    num: 2,
-    color: '#e5243b',
-    icon: 'psychiatry',
-    title: 'Hambre cero',
-    desc: 'Riego sostenible para áreas agrícolas expuestas a sequía estival.',
-  },
-  {
-    num: 13,
-    color: '#3f7e44',
-    icon: 'public',
-    title: 'Acción climática',
-    desc: 'Menos emisiones y más resiliencia en territorios costeros vulnerables.',
-  },
+  { num: 6,  color: '#26bde2', icon: 'water_full',  title: 'Agua limpia',     desc: 'Acceso a agua potable para comunidades con estrés hídrico crítico.' },
+  { num: 7,  color: '#fcc30b', icon: 'bolt',         title: 'Energía limpia',  desc: 'Valorización del calor residual de datacenters en economía circular.' },
+  { num: 2,  color: '#e5243b', icon: 'psychiatry',   title: 'Hambre cero',     desc: 'Riego sostenible para áreas agrícolas expuestas a sequía estival.' },
+  { num: 13, color: '#3f7e44', icon: 'public',        title: 'Acción climática', desc: 'Menos emisiones y más resiliencia en territorios costeros vulnerables.' },
 ]
 
 const HIGHLIGHTS = [
-  {
-    label: 'regiones monitorizadas',
-    icon: 'language',
-    color: '#003366',
-    getValue: metrics => metrics.regions,
-    getTrend: metrics => `${metrics.criticalZones} en estrés extremo`,
-  },
-  {
-    label: 'potencial DC aprovechable',
-    icon: 'developer_board',
-    color: '#d98a00',
-    getValue: metrics => `${metrics.dcPotentialMW.toLocaleString('es-ES')} MW`,
-    getTrend: () => 'calor residual convertible',
-  },
-  {
-    label: 'agua producible al día',
-    icon: 'water_drop',
-    color: '#006d37',
-    getValue: metrics => `${metrics.dailyLitersM.toLocaleString('es-ES')}M L`,
-    getTrend: metrics => `${metrics.annualM3M}M m³/año`,
-  },
+  { label: 'regiones monitorizadas',   icon: 'language',        color: '#003366', getValue: m => m.regions,       getTrend: m => `${m.criticalZones} en estrés extremo` },
+  { label: 'potencial DC aprovechable', icon: 'developer_board', color: '#d98a00', getValue: m => `${m.dcPotentialMW.toLocaleString('es-ES')} MW`, getTrend: () => 'calor residual convertible' },
+  { label: 'agua producible al día',   icon: 'water_drop',      color: '#006d37', getValue: m => `${m.dailyLitersM.toLocaleString('es-ES')}M L`, getTrend: m => `${m.annualM3M}M m³/año` },
 ]
 
-const DETAIL_ROWS = [
-  {
-    label: 'Reducción de huella hídrica',
-    status: 'OPTIMAL',
-    statusClass: 'bg-secondary-container text-on-secondary-container',
-    value: '1.2M m³',
-    forecast: '+12%',
-  },
-  {
-    label: 'Ahorro térmico industrial',
-    status: 'OPTIMAL',
-    statusClass: 'bg-secondary-container text-on-secondary-container',
-    value: '420 GW/h',
-    forecast: '+8.4%',
-  },
-  {
-    label: 'Recuperación de suelo salino',
-    status: 'RECOVERY',
-    statusClass: 'bg-tertiary-container text-tertiary-fixed-dim',
-    value: '15,400 m²',
-    forecast: '+5.1%',
-  },
-  {
-    label: 'Emisiones evitadas',
-    status: 'TRACKING',
-    statusClass: 'bg-primary-fixed text-on-primary-fixed-variant',
-    value: '50.1k t CO₂',
-    forecast: '+9.2%',
-  },
-]
-
-const DEFAULT_ZONES = [
-  {
-    id: 'almeria',
-    name: 'Costa de Almería',
-    country: 'España',
-    region: 'Europa Mediterránea',
-    water_stress: 4.8,
-    dc_potential_mw: 150,
-    ag_land_ha: 65000,
-    focus: 'Alta presión agrícola y fuerte exposición al calor estival.',
-  },
-  {
-    id: 'murcia',
-    name: 'Murcia - Mar Menor',
-    country: 'España',
-    region: 'Europa Mediterránea',
-    water_stress: 4.2,
-    dc_potential_mw: 120,
-    ag_land_ha: 180000,
-    focus: 'Demanda mixta urbana y agrícola con estrés recurrente.',
-  },
-  {
-    id: 'sicilia',
-    name: 'Sicilia Sur',
-    country: 'Italia',
-    region: 'Europa Mediterránea',
-    water_stress: 3.8,
-    dc_potential_mw: 90,
-    ag_land_ha: 120000,
-    focus: 'Infraestructura salina obsoleta y oportunidad de piloto modular.',
-  },
-  {
-    id: 'tunisia_coast',
-    name: 'Costa Tunesina',
-    country: 'Túnez',
-    region: 'Norte de África',
-    water_stress: 4.1,
-    dc_potential_mw: 60,
-    ag_land_ha: 550000,
-    focus: 'Estrés hídrico alto con gran superficie agrícola vulnerable.',
-  },
-]
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function buildMetrics(regions = []) {
-  const totalRegions = regions.length || 34
-  const criticalZones = regions.filter(region => region.water_stress >= 4.5).length || 16
-  const populationM = regions.reduce((acc, region) => acc + (region.population_m || 0), 0) || 207
-  const dcPotentialMW = regions.reduce((acc, region) => acc + (region.dc_potential_mw || 0), 0) || 6105
-  const dailyLitersM = +(dcPotentialMW * 15_000 / 1_000_000).toFixed(1)
-  const annualM3M = +(dailyLitersM * 365 / 1_000).toFixed(1)
-  const households = Math.round((dcPotentialMW * 15_000 * 0.35) / 520)
-  const hectares = Math.round((dcPotentialMW * 15_000 * 0.6) / 4_500)
-  const co2Tonnes = Math.round((dcPotentialMW * 15_000 * 365 * 0.5) / 1_000)
-  const investmentBn = +(dcPotentialMW * 1.5 / 1_000).toFixed(1)
-
-  return {
-    regions: totalRegions,
-    criticalZones,
-    populationM: Math.round(populationM),
-    dcPotentialMW,
-    dailyLitersM,
-    annualM3M,
-    households,
-    hectares,
-    co2Tonnes,
-    investmentBn,
-  }
+  const totalRegions    = regions.length || 34
+  const criticalZones   = regions.filter(r => r.water_stress >= 4.5).length || 16
+  const populationM     = regions.reduce((a, r) => a + (r.population_m || 0), 0) || 207
+  const dcPotentialMW   = regions.reduce((a, r) => a + (r.dc_potential_mw || 0), 0) || 6105
+  const dailyLitersM    = +(dcPotentialMW * 15_000 / 1_000_000).toFixed(1)
+  const annualM3M       = +(dailyLitersM * 365 / 1_000).toFixed(1)
+  const households      = Math.round((dcPotentialMW * 15_000 * 0.35) / 520)
+  const hectares        = Math.round((dcPotentialMW * 15_000 * 0.6) / 4_500)
+  const co2Tonnes       = Math.round((dcPotentialMW * 15_000 * 365 * 0.5) / 1_000)
+  const investmentBn    = +(dcPotentialMW * 1.5 / 1_000).toFixed(1)
+  return { regions: totalRegions, criticalZones, populationM: Math.round(populationM), dcPotentialMW, dailyLitersM, annualM3M, households, hectares, co2Tonnes, investmentBn }
 }
 
-function normalizeZones(regions = []) {
-  if (regions.length) {
-    return regions
-      .slice()
-      .sort((a, b) => (b.water_stress || 0) - (a.water_stress || 0))
-      .slice(0, 6)
-  }
-
-  return DEFAULT_ZONES
+function sortedOpportunities(regions = []) {
+  return [...regions].sort((a, b) => (b.water_stress || 0) - (a.water_stress || 0))
 }
 
-function buildZonePlan(zone = {}, metrics = {}) {
-  const stress = zone.water_stress ?? 3.5
-  const dcPotential = zone.dc_potential_mw ?? 50
-  const dailyLiters = dcPotential * 15_000
-  const annualM3 = Math.round((dailyLiters * 365) / 1_000)
-  const hectares = Math.round((dailyLiters * 0.6) / 4_500)
-  const investment = (dcPotential * 1.5).toFixed(1)
+// ── Sub-componentes ───────────────────────────────────────────────────────────
 
-  if (stress >= 4.5) {
-    return {
-      tag: 'Prioridad crítica',
-      title: 'Despliegue SeaCool con recuperación térmica intensiva',
-      summary:
-        'La zona combina estrés hídrico extremo y demanda agrícola. La solución recomendada prioriza calor residual del datacenter para producir agua dulce de forma continua y reforzar riego de invernaderos cercanos.',
-      badges: ['Calor residual → agua', 'Riego agrícola', 'Módulo escalable'],
-      bullets: [
-        `Potencial local estimado: ${dcPotential} MW térmicos`,
-        `Producción diaria mock: ${dailyLiters.toLocaleString('es-ES')} L`,
-        `Cobertura agrícola aproximada: ${hectares.toLocaleString('es-ES')} ha`,
-      ],
-      recommendation: 'Medio efecto + distribución local',
-      payback: '4-6 años',
-    }
-  }
-
-  if (stress >= 4.0) {
-    return {
-      tag: 'Alta oportunidad',
-      title: 'Implantación híbrida con foco urbano y agrícola',
-      summary:
-        'La zona admite un piloto de SeaCool orientado a balancear agua de consumo y riego. La propuesta combina desalación térmica con una red local de distribución de bajo salto.',
-      badges: ['Uso mixto', 'Piloto modular', 'Red local'],
-      bullets: [
-        `Potencial local estimado: ${dcPotential} MW térmicos`,
-        `Agua dulce mock: ${dailyLiters.toLocaleString('es-ES')} L/día`,
-        `Retorno esperado: ${metrics?.investmentBn ? `~${(metrics.investmentBn / 2).toFixed(1)}B€` : 'moderado'}`,
-      ],
-      recommendation: 'Híbrido urban-agri + absorción térmica',
-      payback: '5-7 años',
-    }
-  }
-
-  return {
-    tag: 'Piloto recomendado',
-    title: 'Piloto compacto con foco en resiliencia y aprendizaje',
-    summary:
-      'La zona todavía permite una primera implantación elegante y medible. SeaCool se presenta como un piloto modular que validaría el rendimiento térmico y la distribución del agua antes de escalar.',
-    badges: ['Piloto', 'Bajo CAPEX', 'Validación rápida'],
-    bullets: [
-      `Potencial local estimado: ${dcPotential} MW térmicos`,
-      `Producción diaria mock: ${dailyLiters.toLocaleString('es-ES')} L`,
-      `Área servible estimada: ${hectares.toLocaleString('es-ES')} ha`,
-    ],
-    recommendation: 'Despliegue escalonado con módulo de absorción',
-    payback: '6-8 años',
-  }
+function TabButton({ active, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-4 py-2.5 text-sm font-bold rounded-lg transition-colors ${
+        active
+          ? 'bg-[#003366] text-white shadow-sm'
+          : 'text-slate-500 hover:text-[#003366] hover:bg-slate-100'
+      }`}
+    >
+      {children}
+    </button>
+  )
 }
 
-function downloadPDF(metrics, selectedZone, zonePlan) {
-  const doc = new jsPDF()
-  const date = new Date().toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+function StressBar({ score }) {
+  const pct   = Math.min((score / 5) * 100, 100)
+  const color = score >= 4.5 ? '#ef4444' : score >= 4.0 ? '#f97316' : score >= 3.5 ? '#eab308' : '#22c55e'
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="text-[10px] font-black" style={{ color }}>{score?.toFixed(1)}</span>
+    </div>
+  )
+}
+
+function OpportunityCard({ region }) {
+  const stress      = region.water_stress ?? 0
+  const stressLabel = stress >= 4.5 ? 'Crítico' : stress >= 4.0 ? 'Alto' : stress >= 3.5 ? 'Moderado' : 'Bajo'
+  const stressBg    = stress >= 4.5 ? 'bg-red-100 text-red-700' : stress >= 4.0 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          {region.flag && <div className="text-xl mb-1">{region.flag}</div>}
+          <h3 className="font-bold text-[#001e40] text-sm leading-tight">{region.name}</h3>
+          <p className="text-xs text-slate-500 mt-0.5">{region.country}{region.region ? ` · ${region.region}` : ''}</p>
+        </div>
+        <span className={`text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ${stressBg}`}>{stressLabel}</span>
+      </div>
+
+      <div>
+        <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+          <span>ESTRÉS HÍDRICO</span>
+          <span>{stress.toFixed(1)}/5</span>
+        </div>
+        <StressBar score={stress} />
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+          <div className="text-base font-black text-[#003366]">{region.dc_potential_mw} MW</div>
+          <div className="text-[9px] text-slate-400 uppercase tracking-wide">potencial DC</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-2.5 text-center">
+          <div className="text-base font-black text-[#006d37]">{region.population_m}M</div>
+          <div className="text-[9px] text-slate-400 uppercase tracking-wide">habitantes</div>
+        </div>
+      </div>
+
+      {(region.key_challenge || region.annual_rainfall_mm) && (
+        <p className="text-[11px] text-slate-500 italic leading-snug border-t border-slate-100 pt-2">
+          {region.key_challenge ?? `${region.annual_rainfall_mm} mm/año de precipitación`}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function ReportCard({ report }) {
+  const isRegion = report.type === 'region'
+  const analysis = report.analysis
+  const time     = report.timestamp
+    ? new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }).format(new Date(report.timestamp))
+    : ''
+
+  const waterLiters = analysis?.thermal_agent?.daily_water_liters
+  const households  = analysis?.distribution_agent?.households_supplied
+  const co2         = analysis?.impact_agent?.co2_avoided_tonnes_year
+  const pitch       = analysis?.impact_agent?.pitch
+  const sdgs        = analysis?.impact_agent?.sdgs ?? []
+  const roi         = analysis?.impact_agent?.roi_years
+  const viability   = report.viability
+
+  const viabilityCls = {
+    green:  'bg-green-50 text-green-700 border-green-200',
+    blue:   'bg-blue-50 text-blue-700 border-blue-200',
+    orange: 'bg-orange-50 text-orange-700 border-orange-200',
+    gray:   'bg-slate-100 text-slate-500 border-slate-200',
+  }[viability?.color] ?? ''
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start gap-3">
+          <div className={`p-2 rounded-lg shrink-0 ${isRegion ? 'bg-blue-50' : 'bg-cyan-50'}`}>
+            <span className={`material-symbols-outlined text-[18px] ${isRegion ? 'text-[#003366]' : 'text-[#0e7490]'}`}>
+              {isRegion ? 'location_on' : 'developer_board'}
+            </span>
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-bold text-[#001e40] text-sm leading-tight">{report.name}</h3>
+              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isRegion ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'}`}>
+                {isRegion ? 'REGIÓN' : 'DATACENTER'}
+              </span>
+            </div>
+            {isRegion && report.region && (
+              <p className="text-xs text-slate-500 mt-0.5">{report.region.country}{report.region.region ? ` · ${report.region.region}` : ''}</p>
+            )}
+            {!isRegion && report.dc && (
+              <p className="text-xs text-slate-500 mt-0.5">{report.dc.city}{report.dc.city && report.dc.country ? ', ' : ''}{report.dc.country}</p>
+            )}
+          </div>
+        </div>
+        <span className="text-[10px] text-slate-400 shrink-0 mt-0.5">{time}</span>
+      </div>
+
+      {viability && (
+        <div className={`rounded-lg px-3 py-2 border text-[11px] font-semibold flex items-center gap-1.5 ${viabilityCls}`}>
+          <span className="material-symbols-outlined text-[14px]">{viability.icon}</span>
+          {viability.label}
+        </div>
+      )}
+
+      {pitch && (
+        <div className="bg-slate-50 rounded-lg px-3 py-2">
+          <p className="text-xs text-slate-600 italic leading-snug">"{pitch}"</p>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-2">
+        {waterLiters != null && (
+          <div className="bg-slate-50 rounded-lg p-2 text-center">
+            <div className="text-sm font-black text-[#003366]">{(waterLiters / 1_000_000).toFixed(2)}M</div>
+            <div className="text-[9px] text-slate-400">L/día</div>
+          </div>
+        )}
+        {households != null && (
+          <div className="bg-slate-50 rounded-lg p-2 text-center">
+            <div className="text-sm font-black text-[#006d37]">{fmt(Number(households))}</div>
+            <div className="text-[9px] text-slate-400">hogares</div>
+          </div>
+        )}
+        {co2 != null && (
+          <div className="bg-slate-50 rounded-lg p-2 text-center">
+            <div className="text-sm font-black text-orange-500">{fmt(Number(co2))}</div>
+            <div className="text-[9px] text-slate-400">t CO₂/año</div>
+          </div>
+        )}
+      </div>
+
+      {(sdgs.length > 0 || roi) && (
+        <div className="flex flex-wrap gap-1 pt-1 border-t border-slate-100">
+          {sdgs.map(s => (
+            <span key={s} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">ODS {s}</span>
+          ))}
+          {roi && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700">{roi}a payback</span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EmptyAnalyses() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+        <span className="material-symbols-outlined text-[32px] text-slate-400">analytics</span>
+      </div>
+      <h3 className="font-bold text-[#001e40] text-base mb-2">Aún no hay análisis</h3>
+      <p className="text-sm text-slate-500 max-w-xs">
+        Ve al mapa, pulsa sobre una región o datacenter y lanza un análisis IA. Los resultados aparecerán aquí automáticamente.
+      </p>
+    </div>
+  )
+}
+
+// ── PDF ───────────────────────────────────────────────────────────────────────
+
+function downloadPDF(metrics, regions, reports) {
+  const doc  = new jsPDF()
+  const date = new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })
 
   doc.setFillColor(0, 51, 102)
   doc.rect(0, 0, 210, 42, 'F')
@@ -245,40 +247,26 @@ function downloadPDF(metrics, selectedZone, zonePlan) {
   doc.setFontSize(9)
   doc.text(`Generado: ${date} · WRI Aqueduct 2023 · CC BY 4.0`, 15, 32)
 
-  if (selectedZone && zonePlan) {
-    doc.setFillColor(243, 244, 245)
-    doc.roundedRect(15, 46, 180, 18, 3, 3, 'F')
-    doc.setTextColor(25, 28, 29)
-    doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.text(`Zona: ${selectedZone.name}`, 20, 54)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.text(`Solución: ${zonePlan.title}`, 20, 60)
-  }
-
-  const lines = [
-    ['Regiones monitorizadas', `${metrics.regions}`],
-    ['Zonas en estrés extremo', `${metrics.criticalZones}`],
-    ['Población potencialmente cubierta', `${metrics.populationM} M`],
-    ['Potencial DC total', `${metrics.dcPotentialMW.toLocaleString('es-ES')} MW`],
-    ['Agua producida por día', `${metrics.dailyLitersM.toLocaleString('es-ES')} M L`],
-    ['Agua producida por año', `${metrics.annualM3M} M m³`],
-    ['Hogares abastecidos', `${metrics.households.toLocaleString('es-ES')}`],
-    ['Hectáreas agrícolas regadas', `${metrics.hectares.toLocaleString('es-ES')} ha`],
-    ['CO₂ evitado por año', `${metrics.co2Tonnes.toLocaleString('es-ES')} t`],
-    ['Inversión estimada', `~${metrics.investmentBn} B€`],
-  ]
-
+  // Resumen global
   doc.setTextColor(25, 28, 29)
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)
-  doc.text('Resumen de impacto', 15, selectedZone && zonePlan ? 72 : 56)
+  doc.text('Resumen de impacto global', 15, 56)
 
+  const lines = [
+    ['Regiones monitorizadas',       `${metrics.regions}`],
+    ['Zonas en estrés extremo',       `${metrics.criticalZones}`],
+    ['Potencial DC total',            `${metrics.dcPotentialMW.toLocaleString('es-ES')} MW`],
+    ['Agua producida por día',        `${metrics.dailyLitersM.toLocaleString('es-ES')} M L`],
+    ['Agua producida por año',        `${metrics.annualM3M} M m³`],
+    ['Hogares abastecidos',           `${metrics.households.toLocaleString('es-ES')}`],
+    ['CO₂ evitado por año',           `${metrics.co2Tonnes.toLocaleString('es-ES')} t`],
+    ['Inversión estimada',            `~${metrics.investmentBn} B€`],
+  ]
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
-  lines.forEach(([label, value], index) => {
-    const y = (selectedZone && zonePlan ? 84 : 68) + index * 10
+  lines.forEach(([label, value], i) => {
+    const y = 68 + i * 10
     doc.setTextColor(67, 71, 79)
     doc.text(label, 15, y)
     doc.setTextColor(0, 109, 55)
@@ -287,69 +275,83 @@ function downloadPDF(metrics, selectedZone, zonePlan) {
     doc.setFont('helvetica', 'normal')
   })
 
+  // ODS
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(13)
   doc.setTextColor(25, 28, 29)
-  doc.text('ODS conectados', 15, 178)
+  doc.text('ODS conectados', 15, 160)
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(10)
   doc.setTextColor(67, 71, 79)
-  ['ODS 6 — Agua limpia y saneamiento', 'ODS 7 — Energía asequible y no contaminante', 'ODS 2 — Hambre cero', 'ODS 13 — Acción por el clima'].forEach((line, index) => {
-    doc.text(`• ${line}`, 15, 190 + index * 9)
+  ;['ODS 6 — Agua limpia y saneamiento', 'ODS 7 — Energía asequible y no contaminante', 'ODS 2 — Hambre cero', 'ODS 13 — Acción por el clima'].forEach((line, i) => {
+    doc.text(`• ${line}`, 15, 172 + i * 9)
   })
 
-  if (selectedZone && zonePlan) {
+  // Session analyses
+  if (reports.length > 0) {
+    doc.addPage()
+    doc.setFillColor(0, 51, 102)
+    doc.rect(0, 0, 210, 28, 'F')
+    doc.setTextColor(255, 255, 255)
     doc.setFont('helvetica', 'bold')
-    doc.setFontSize(11)
-    doc.setTextColor(25, 28, 29)
-    doc.text('Solución por zona', 15, 238)
-    doc.setFont('helvetica', 'normal')
-    doc.setFontSize(9)
-    doc.setTextColor(67, 71, 79)
-    doc.text(zonePlan.summary, 15, 246, { maxWidth: 180 })
-    doc.text(`Payback orientativo: ${zonePlan.payback}`, 15, 266)
+    doc.setFontSize(14)
+    doc.text(`Análisis realizados (${reports.length})`, 15, 18)
+
+    let y = 40
+    reports.slice(0, 8).forEach(r => {
+      const tag = r.type === 'region' ? 'REGIÓN' : 'DATACENTER'
+      doc.setTextColor(0, 51, 102)
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.text(`${tag}: ${r.name}`, 15, y)
+      y += 7
+      const wa = r.analysis?.thermal_agent?.daily_water_liters
+      const hh = r.analysis?.distribution_agent?.households_supplied
+      const co = r.analysis?.impact_agent?.co2_avoided_tonnes_year
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(67, 71, 79)
+      if (wa) doc.text(`Agua: ${(wa / 1_000_000).toFixed(2)}M L/día`, 20, y)
+      if (hh) doc.text(`Hogares: ${Number(hh).toLocaleString('es-ES')}`, 80, y)
+      if (co) doc.text(`CO₂: ${Number(co).toLocaleString('es-ES')} t/año`, 145, y)
+      y += 9
+      if (r.analysis?.impact_agent?.pitch) {
+        doc.setTextColor(100, 100, 100)
+        doc.text(`"${r.analysis.impact_agent.pitch}"`, 20, y, { maxWidth: 170 })
+        y += 14
+      }
+      y += 3
+    })
   }
 
   doc.setFontSize(8)
   doc.setTextColor(150, 150, 150)
-  doc.text('Producción estimada: 15.000 L/día por MW térmico · CO₂ evitado: 1,5 kg/m³ · Proyección sobre potencial máximo identificado.', 15, 278, { maxWidth: 180 })
-  doc.text('SeaCool © 2026 — Water Security & Circular Infrastructure', 15, 286)
+  doc.text('Producción estimada: 15.000 L/día por MW térmico · SeaCool © 2026', 15, 290)
 
   doc.save(`seacool-impact-${new Date().toISOString().slice(0, 10)}.pdf`)
 }
 
+// ── Componente principal ──────────────────────────────────────────────────────
+
 export default function ESGReports() {
-  const [regions, setRegions] = useState([])
-  const [selectedZoneId, setSelectedZoneId] = useState('')
+  const [activeTab, setActiveTab] = useState('opportunities')
+  const [regions,   setRegions]   = useState([])
+  const reports = useReports()
 
   useEffect(() => {
-    getRegions()
-      .then(setRegions)
-      .catch(() => setRegions([]))
+    getRegions().then(setRegions).catch(() => setRegions([]))
   }, [])
 
-  const zoneOptions = useMemo(() => normalizeZones(regions), [regions])
-  const metrics = useMemo(() => buildMetrics(regions), [regions])
-  const selectedZone = useMemo(() => {
-    return zoneOptions.find(zone => zone.id === selectedZoneId) || zoneOptions[0] || null
-  }, [zoneOptions, selectedZoneId])
-  const zonePlan = useMemo(() => buildZonePlan(selectedZone, metrics), [selectedZone, metrics])
+  const metrics      = useMemo(() => buildMetrics(regions), [regions])
+  const opportunities = useMemo(() => sortedOpportunities(regions), [regions])
 
-  useEffect(() => {
-    if (!selectedZoneId && zoneOptions[0]) {
-      setSelectedZoneId(zoneOptions[0].id)
-    }
-  }, [zoneOptions, selectedZoneId])
-
-  const dateLabel = new Intl.DateTimeFormat('es-ES', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  }).format(new Date())
+  const dateLabel = new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
 
   return (
     <div className="min-h-screen max-w-container-max mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
       <div className="flex flex-col gap-6">
+
+        {/* ── Header ── */}
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-3xl space-y-3">
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
@@ -359,16 +361,15 @@ export default function ESGReports() {
               <span>{dateLabel}</span>
             </div>
             <h1 className="text-[clamp(2rem,4vw,3.25rem)] leading-[1.05] font-black tracking-tight text-[#001e40]">
-              Informe de impacto con lectura rápida y evidencia clara.
+              Oportunidades SeaCool &amp; análisis realizados.
             </h1>
             <p className="text-sm sm:text-base text-on-surface-variant max-w-2xl">
-              Una vista más limpia para presentar la contribución de SeaCool a agua, energía y clima sin perder densidad técnica.
-              Los números se calculan con los datos de regiones del proyecto y se mantienen coherentes con la paleta del sistema.
+              Explora las zonas con mayor potencial para implantar SeaCool y consulta los análisis de IA completados durante la sesión.
             </p>
           </div>
 
           <button
-            onClick={() => downloadPDF(metrics, selectedZone, zonePlan)}
+            onClick={() => downloadPDF(metrics, opportunities, reports)}
             className="inline-flex items-center justify-center gap-2 self-start rounded-lg bg-[#003366] px-5 py-3 text-sm font-bold text-white shadow-[0_8px_24px_-14px_rgba(0,30,64,0.55)] transition-transform hover:-translate-y-0.5 active:translate-y-0"
           >
             <span className="material-symbols-outlined text-[18px]">download</span>
@@ -376,285 +377,210 @@ export default function ESGReports() {
           </button>
         </div>
 
-        <section className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-5 rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-4 mb-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Zona de auditoría</p>
-                <h2 className="mt-1 text-xl font-bold text-[#001e40]">Personaliza el reporte</h2>
-              </div>
-              <span className="rounded-full bg-primary-fixed px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-primary-fixed-variant">
-                Mocked zone
-              </span>
+        {/* ── Tabs ── */}
+        <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl w-fit">
+          <TabButton active={activeTab === 'opportunities'} onClick={() => setActiveTab('opportunities')}>
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px]">travel_explore</span>
+              Oportunidades
+            </span>
+          </TabButton>
+          <TabButton active={activeTab === 'analyses'} onClick={() => setActiveTab('analyses')}>
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[15px]">analytics</span>
+              Análisis realizados
+              {reports.length > 0 && (
+                <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === 'analyses' ? 'bg-white/20 text-white' : 'bg-[#003366] text-white'}`}>
+                  {reports.length}
+                </span>
+              )}
+            </span>
+          </TabButton>
+        </div>
+
+        {/* ── Tab: Oportunidades ── */}
+        {activeTab === 'opportunities' && (
+          <>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="material-symbols-outlined text-[16px] text-slate-400">info</span>
+              <p className="text-xs text-slate-500">Regiones con mayor estrés hídrico, ordenadas por urgencia. Potencial para desplegar infraestructura SeaCool.</p>
             </div>
 
-            <label className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 mb-2">
-              Selecciona la ubicación
-            </label>
-            <select
-              value={selectedZone?.id || ''}
-              onChange={e => setSelectedZoneId(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-[#001e40] outline-none transition-colors focus:border-[#003366] focus:bg-white"
-            >
-              {zoneOptions.map(zone => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name} · {zone.country}
-                </option>
-              ))}
-            </select>
-
-            {selectedZone && (
-              <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-wrap items-center gap-2 mb-3">
-                  <span className="rounded-full bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[#003366] border border-slate-200">
-                    {selectedZone.region || 'Zona seleccionada'}
-                  </span>
-                  <span className="rounded-full bg-secondary-container px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-secondary-container">
-                    WRI {selectedZone.water_stress?.toFixed?.(1) || selectedZone.water_stress}/5
-                  </span>
-                </div>
-
-                <p className="text-base font-bold text-[#001e40]">{selectedZone.name}</p>
-                <p className="mt-1 text-sm leading-6 text-on-surface-variant">{selectedZone.focus}</p>
-
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-lg bg-white p-3 border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Potencial local</p>
-                    <p className="mt-1 text-xl font-black text-[#003366]">{selectedZone.dc_potential_mw} MW</p>
-                  </div>
-                  <div className="rounded-lg bg-white p-3 border border-slate-200">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Suelo agrícola</p>
-                    <p className="mt-1 text-xl font-black text-[#006d37]">{selectedZone.ag_land_ha.toLocaleString('es-ES')} ha</p>
-                  </div>
-                </div>
+            {opportunities.length > 0 ? (
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {opportunities.map(r => <OpportunityCard key={r.id} region={r} />)}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-12 text-slate-400 text-sm">
+                <span className="material-symbols-outlined mr-2">hourglass_empty</span>
+                Cargando regiones...
               </div>
             )}
-          </div>
 
-          <div className="lg:col-span-7 rounded-2xl border border-slate-200 bg-[#001e40] p-6 sm:p-7 text-white shadow-[0_12px_36px_-24px_rgba(0,0,0,0.5)] relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] bg-[size:36px_36px]" />
-            <div className="relative z-10">
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-200 mb-3">
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{zonePlan.tag}</span>
-                <span>Solución mockeada</span>
+            {/* Resumen ejecutivo */}
+            <section className="grid gap-6 lg:grid-cols-12 mt-2">
+              <div className="lg:col-span-8 rounded-2xl border border-slate-200 bg-[#001e40] p-6 sm:p-8 text-white shadow-[0_12px_36px_-24px_rgba(0,0,0,0.5)] overflow-hidden relative">
+                <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] bg-[size:36px_36px]" />
+                <div className="relative z-10 flex flex-col gap-6">
+                  <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-200">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">Resumen ejecutivo</span>
+                    <span>WRI Aqueduct 2023</span>
+                  </div>
+                  <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+                    <div className="space-y-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Agua potencial al día</p>
+                      <div className="flex flex-wrap items-baseline gap-3">
+                        <span className="text-[clamp(3rem,8vw,5rem)] font-black leading-none text-white">
+                          {metrics.dailyLitersM.toLocaleString('es-ES')}M
+                        </span>
+                        <span className="text-lg sm:text-2xl font-semibold text-blue-200">litros</span>
+                      </div>
+                      <p className="max-w-2xl text-sm sm:text-base text-blue-100/80">
+                        Si el potencial detectado en regiones costeras se activara con SeaCool, el sistema podría convertir calor residual en un flujo continuo de agua útil para consumo y agricultura.
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:min-w-[260px]">
+                      {[
+                        { label: 'Al año',      value: `${metrics.annualM3M}M`, unit: 'm³' },
+                        { label: 'CO₂ evitado', value: fmt(metrics.co2Tonnes),  unit: 't'  },
+                        { label: 'Hogares',     value: fmt(metrics.households),  unit: ''   },
+                        { label: 'Inversión',   value: `~${metrics.investmentBn}B€`, unit: '' },
+                      ].map(({ label, value, unit }) => (
+                        <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                          <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">{label}</div>
+                          <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white break-all">{value}</div>
+                          {unit && <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">{unit}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">{zonePlan.title}</h2>
-              <p className="mt-3 max-w-3xl text-sm sm:text-base leading-7 text-blue-100/85">{zonePlan.summary}</p>
+              <aside className="lg:col-span-4 rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Lectura rápida</p>
+                    <h2 className="mt-1 text-xl font-bold text-[#001e40]">Señales clave</h2>
+                  </div>
+                  <span className="rounded-full bg-secondary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-secondary-container">Stable</span>
+                </div>
+                <div className="mt-5 space-y-4">
+                  <div className="rounded-xl bg-slate-50 p-4">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Población cubierta</p>
+                    <div className="mt-2 text-2xl font-black text-[#003366]">{metrics.populationM}M</div>
+                    <p className="mt-1 text-sm text-on-surface-variant">personas en regiones monitorizadas</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Zonas críticas</p>
+                      <p className="mt-2 text-2xl font-black text-[#ba1a1a]">{metrics.criticalZones}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 p-4">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Potencial DC</p>
+                      <p className="mt-2 text-2xl font-black text-[#003366]">{metrics.dcPotentialMW.toLocaleString('es-ES')}</p>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+            </section>
 
-              <div className="mt-5 flex flex-wrap gap-2">
-                {zonePlan.badges.map(badge => (
-                  <span key={badge} className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-100">
-                    {badge}
-                  </span>
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {HIGHLIGHTS.map(card => (
+                <MetricCard
+                  key={card.label}
+                  label={card.label}
+                  value={card.getValue(metrics)}
+                  unit=""
+                  trend={card.getTrend(metrics)}
+                  icon={card.icon}
+                  barColor={card.color}
+                  barPct={card.label === 'regiones monitorizadas' ? 84 : card.label === 'potencial DC aprovechable' ? 72 : 92}
+                />
+              ))}
+            </section>
+
+            {/* ODS */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-end justify-between gap-4 mb-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Alineación estratégica</p>
+                  <h2 className="mt-1 text-xl font-bold text-[#001e40]">ODS relevantes</h2>
+                </div>
+                <span className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">UN SDGs</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {ODS.map(({ num, color, icon, title, desc }) => (
+                  <article key={num} className="rounded-xl border border-slate-200 p-4 transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                        <span className="material-symbols-outlined text-[20px]" style={{ color }}>{icon}</span>
+                      </div>
+                      <span className="text-xs font-black" style={{ color }}>ODS {num}</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-[#001e40]">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">{desc}</p>
+                  </article>
                 ))}
               </div>
+            </section>
+          </>
+        )}
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                {zonePlan.bullets.map(item => (
-                  <div key={item} className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Dato mock</p>
-                    <p className="mt-2 text-sm leading-6 text-white/95">{item}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Solución térmica</p>
-                  <p className="mt-2 text-base font-bold text-white">{zonePlan.recommendation}</p>
-                </div>
-                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Payback orientativo</p>
-                  <p className="mt-2 text-base font-bold text-white">{zonePlan.payback}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="grid gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-8 rounded-2xl border border-slate-200 bg-[#001e40] p-6 sm:p-8 text-white shadow-[0_12px_36px_-24px_rgba(0,0,0,0.5)] overflow-hidden relative">
-            <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] bg-[size:36px_36px]" />
-            <div className="relative z-10 flex flex-col gap-6">
-              <div className="flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-200">
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">Resumen ejecutivo</span>
-                <span>WRI Aqueduct 2023</span>
-              </div>
-
-              <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-                <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-200">Agua potencial al día</p>
-                  <div className="flex flex-wrap items-baseline gap-3">
-                    <span className="text-[clamp(3rem,8vw,5rem)] font-black leading-none text-white">
-                      {metrics.dailyLitersM.toLocaleString('es-ES')}M
-                    </span>
-                    <span className="text-lg sm:text-2xl font-semibold text-blue-200">litros</span>
-                  </div>
-                  <p className="max-w-2xl text-sm sm:text-base text-blue-100/80">
-                    Si el potencial detectado en regiones costeras se activara con SeaCool, el sistema podría convertir calor residual en un flujo continuo de agua útil para consumo y agricultura.
+        {/* ── Tab: Análisis realizados ── */}
+        {activeTab === 'analyses' && (
+          <>
+            {reports.length === 0 ? (
+              <EmptyAnalyses />
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-slate-500">
+                    {reports.length} análisis completado{reports.length !== 1 ? 's' : ''} en esta sesión
                   </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 sm:min-w-[260px]">
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Al año</div>
-                    <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white whitespace-nowrap">
-                      {metrics.annualM3M}M
-                    </div>
-                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">m³</div>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">CO₂ evitado</div>
-                    <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white whitespace-nowrap">
-                      {metrics.co2Tonnes.toLocaleString('es-ES')}
-                    </div>
-                    <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">t</div>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Hogares</div>
-                    <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white whitespace-nowrap">
-                      {metrics.households.toLocaleString('es-ES')}
-                    </div>
-                  </div>
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-                    <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Inversión</div>
-                    <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white whitespace-nowrap">
-                      ~{metrics.investmentBn}B€
-                    </div>
-                  </div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {reports.map(r => <ReportCard key={r.id} report={r} />)}
                 </div>
-              </div>
-            </div>
-          </div>
+              </>
+            )}
 
-          <aside className="lg:col-span-4 rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
-            <div className="flex items-center justify-between gap-3">
+            {/* ODS también en tab 2 */}
+            <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
+              <div className="flex items-end justify-between gap-4 mb-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Alineación estratégica</p>
+                  <h2 className="mt-1 text-xl font-bold text-[#001e40]">ODS relevantes</h2>
+                </div>
+                <span className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">UN SDGs</span>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {ODS.map(({ num, color, icon, title, desc }) => (
+                  <article key={num} className="rounded-xl border border-slate-200 p-4 transition-transform hover:-translate-y-0.5">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                        <span className="material-symbols-outlined text-[20px]" style={{ color }}>{icon}</span>
+                      </div>
+                      <span className="text-xs font-black" style={{ color }}>ODS {num}</span>
+                    </div>
+                    <h3 className="text-sm font-bold text-[#001e40]">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-on-surface-variant">{desc}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 flex gap-3 items-start">
+              <span className="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">info</span>
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Lectura rápida</p>
-                <h2 className="mt-1 text-xl font-bold text-[#001e40]">Señales clave</h2>
-              </div>
-              <span className="rounded-full bg-secondary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-secondary-container">
-                Stable
-              </span>
-            </div>
-
-            <div className="mt-5 space-y-4">
-              <div className="rounded-xl bg-slate-50 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Población cubierta</p>
-                <div className="mt-2 text-2xl font-black text-[#003366]">{metrics.populationM}M</div>
-                <p className="mt-1 text-sm text-on-surface-variant">personas en regiones monitorizadas por el proyecto</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Zonas críticas</p>
-                  <p className="mt-2 text-2xl font-black text-[#ba1a1a]">{metrics.criticalZones}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Potencial DC</p>
-                  <p className="mt-2 text-2xl font-black text-[#003366]">{metrics.dcPotentialMW.toLocaleString('es-ES')}</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-[#f8f9fa] p-4">
-                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Metodología</p>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Metodología y fuentes</p>
                 <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                  Proyección sobre el potencial total de regiones costeras del dataset SeaCool. El tono es deliberadamente sobrio para priorizar lectura y comparabilidad.
+                  Análisis generados por 4 agentes IA (Hídrico, Térmico, Distribuidor, Impacto) usando datos de WRI Aqueduct 4.0, PeeringDB, Open-Meteo ERA5 e IEA Carbon Intensity 2023. Producción estimada: 15.000 L/día por MW térmico. CO₂ reducido frente a desalinización eléctrica convencional.
                 </p>
               </div>
-            </div>
-          </aside>
-        </section>
-
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {HIGHLIGHTS.map(card => (
-            <MetricCard
-              key={card.label}
-              label={card.label}
-              value={card.getValue(metrics)}
-              unit=""
-              trend={card.getTrend(metrics)}
-              icon={card.icon}
-              barColor={card.color}
-              barPct={card.label === 'regiones monitorizadas' ? 84 : card.label === 'potencial DC aprovechable' ? 72 : 92}
-            />
-          ))}
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-7 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-end justify-between gap-4 mb-5">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Alineación estratégica</p>
-              <h2 className="mt-1 text-xl font-bold text-[#001e40]">ODS relevantes</h2>
-            </div>
-            <span className="rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
-              UN SDGs
-            </span>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {ODS.map(({ num, color, icon, title, desc }) => (
-              <article key={num} className="rounded-xl border border-slate-200 p-4 transition-transform hover:-translate-y-0.5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
-                    <span className="material-symbols-outlined text-[20px]" style={{ color }}>{icon}</span>
-                  </div>
-                  <span className="text-xs font-black" style={{ color }}>ODS {num}</span>
-                </div>
-                <h3 className="text-sm font-bold text-[#001e40]">{title}</h3>
-                <p className="mt-1 text-sm leading-6 text-on-surface-variant">{desc}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_20px_-4px_rgba(0,0,0,0.04)] overflow-hidden">
-          <div className="border-b border-slate-100 bg-slate-50/70 px-5 sm:px-6 py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Métricas detalladas</p>
-              <h2 className="mt-1 text-lg sm:text-xl font-bold text-[#001e40]">Impacto social y operativo</h2>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-secondary" />
-              Datos proyectados
-            </div>
-          </div>
-
-          <div className="divide-y divide-slate-100">
-            {DETAIL_ROWS.map(row => (
-              <div key={row.label} className="grid gap-3 px-5 sm:px-6 py-4 lg:grid-cols-[minmax(0,1.5fr)_120px_140px_120px] lg:items-center">
-                <div className="flex items-center gap-3">
-                  <span className="h-2.5 w-2.5 rounded-full bg-secondary" />
-                  <div>
-                    <p className="font-semibold text-[#001e40]">{row.label}</p>
-                    <p className="text-sm text-on-surface-variant">SeaCool lo presenta como una métrica de avance consolidado.</p>
-                  </div>
-                </div>
-
-                <div>
-                  <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.18em] ${row.statusClass}`}>
-                    {row.status}
-                  </span>
-                </div>
-
-                <div className="text-sm sm:text-base font-bold text-[#001e40]">{row.value}</div>
-
-                <div className="text-sm font-semibold text-[#006d37] lg:text-right">{row.forecast}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 flex gap-3 items-start">
-          <span className="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">info</span>
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Metodología y fuentes</p>
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-              La lectura parte de datos WRI Aqueduct 2023 y de la huella térmica potencial del proyecto. La producción estimada usa una relación de 15.000 L/día por MW térmico y la reducción de emisiones se expresa frente a desalinización eléctrica convencional. La zona seleccionada arriba reescribe el bloque de solución para que el reporte se sienta personalizado sin cambiar el backend.
-            </p>
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </div>
     </div>
   )
