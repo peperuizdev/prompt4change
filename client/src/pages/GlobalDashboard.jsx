@@ -130,7 +130,7 @@ function RegionPreviewPanel({ region, onAnalyze, onClose }) {
   const carbon  = getCarbonIntensity(region.country)
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
-      <div className="bg-[#003366] text-white p-5 flex-shrink-0">
+      <div className="bg-[#003366] text-white p-5 flex-shrink-0 sticky top-0 z-10 shadow-md">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-2xl mb-0.5">{region.flag}</div>
@@ -220,7 +220,7 @@ function DCPreviewPanel({ dc, onAnalyze, onClose }) {
 
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
-      <div className="bg-[#0e7490] text-white p-5 flex-shrink-0">
+      <div className="bg-[#0e7490] text-white p-5 flex-shrink-0 sticky top-0 z-10 shadow-md">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="mb-1 text-xs font-bold tracking-widest uppercase text-cyan-200">Datacenter · PeeringDB</div>
@@ -302,7 +302,7 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
 
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
-      <div className="bg-[#003366] text-white p-5 flex-shrink-0">
+      <div className="bg-[#003366] text-white p-5 flex-shrink-0 sticky top-0 z-10 shadow-md">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-2xl mb-0.5">{region.flag}</div>
@@ -456,7 +456,7 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
 
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
-      <div className="bg-[#0e7490] text-white p-5 flex-shrink-0">
+      <div className="bg-[#0e7490] text-white p-5 flex-shrink-0 sticky top-0 z-10 shadow-md">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="mb-1 text-xs font-bold tracking-widest uppercase text-cyan-200">Datacenter · PeeringDB</div>
