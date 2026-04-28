@@ -15,7 +15,7 @@ import re
 from typing import Dict, Any, Optional
 
 from app.services.ai_service import ai_service
-from app.services.seacool_service import LITROS_POR_MW_DIA
+from app.services.seacool_service import calcular_loop_circular, DATACENTER_MAX_MW
 
 
 # ── System prompt del redactor ────────────────────────────────────────────────
@@ -111,8 +111,11 @@ class ReportGenerator:
             Dict con la estructura del informe, o None si el LLM falla.
         """
         potencia_real = dc_power_mw * (carga_pct / 100)
-        agua_max = int(potencia_real * LITROS_POR_MW_DIA)
-        hogares_max = int((potencia_real * 1000) / 3)  # 3 kW promedio/hogar
+        # Usar el loop circular para calcular el excedente real de agua
+        carga_efectiva_pct = carga_pct * (dc_power_mw / DATACENTER_MAX_MW)
+        loop = calcular_loop_circular(carga_efectiva_pct)
+        agua_max = loop["agua_generada_litros"]
+        hogares_max = int((loop["calor_residual_mw"] * 1000) / 3)  # 3 kW por hogar
 
         agents_summary = ReportGenerator._compress_agents(agents_data)
 

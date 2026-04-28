@@ -2,16 +2,17 @@
 SeaCool Global - Endpoints para análisis mundial de estrés hídrico.
 """
 
+import asyncio
 import time
 import logging
 import json
-import os
 from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import httpx
 
 from app.services.global_service import global_service
+from app.core.config import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -19,10 +20,11 @@ logger = logging.getLogger(__name__)
 # Simple in-memory cache (TTL 1 hour) to avoid hammering PeeringDB
 _dc_cache:  dict = {"data": None, "ts": 0}
 _wri_cache: dict = {"data": None, "ts": 0}
-_DC_TTL  = 3600
-_WRI_TTL = 86400   # WRI data is static — cache 24h
+_DC_TTL       = 3600
+_DC_RETRY_TTL = 120   # si PeeringDB falla, reintentar en 2 min (no 1h)
+_WRI_TTL      = 86400
 _PEERINGDB_CACHE_FILE = Path(__file__).resolve().parents[1] / "data" / "peeringdb_cache.json"
-_PEERINGDB_PAGE_SIZE = 1000
+_PEERINGDB_PAGE_SIZE = 200  # PeeringDB rate-limits páginas grandes
 
 _WRI_CARTO = "https://wri-rw.carto.com/api/v2/sql"
 _WRI_SQL = (
@@ -68,13 +70,27 @@ async def _fetch_datacenters():
     if _dc_cache["data"] is not None and now - _dc_cache["ts"] < _DC_TTL:
         return _dc_cache["data"]
 
-    try:
-        api_key = os.getenv("PEERINGDB_API_KEY")
-        headers = {"User-Agent": "prompt4change/1.0"}
-        if api_key:
-            headers["Authorization"] = f"Api-Key {api_key}"
+    # Disco cache tiene prioridad si PeeringDB no está disponible
+    disk = _load_peeringdb_disk_cache()
+    if disk:
+        _dc_cache["data"] = disk
+        _dc_cache["ts"] = now
+        # Intenta actualizar en background solo si el disco cache tiene > 1 día
+        disk_age = now - _PEERINGDB_CACHE_FILE.stat().st_mtime if _PEERINGDB_CACHE_FILE.exists() else 9999
+        if disk_age < 86400:
+            logger.info("PeeringDB: usando cache en disco (%d DCs, %.1f h)", len(disk), disk_age / 3600)
+            return disk
 
-        result = []
+    api_key = settings.PEERINGDB_API_KEY
+    if not api_key:
+        logger.warning("PEERINGDB_API_KEY no configurada — PeeringDB puede rechazar peticiones sin autenticación")
+
+    headers = {"User-Agent": "SeaCool/1.0 (prompt4change)"}
+    if api_key:
+        headers["Authorization"] = f"Api-Key {api_key}"
+
+    result = []
+    try:
         offset = 0
         async with httpx.AsyncClient(timeout=20) as client:
             while True:
@@ -109,21 +125,31 @@ async def _fetch_datacenters():
                 if len(raw) < _PEERINGDB_PAGE_SIZE:
                     break
                 offset += _PEERINGDB_PAGE_SIZE
+                await asyncio.sleep(1.0)
+
         if result:
+            logger.info("PeeringDB: %d datacenters descargados", len(result))
             try:
                 _PEERINGDB_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
                 _PEERINGDB_CACHE_FILE.write_text(json.dumps(result), encoding="utf-8")
             except Exception as exc:
-                logger.warning("No se pudo guardar cache PeeringDB en disco: %s", exc)
+                logger.warning("No se pudo guardar cache en disco: %s", exc)
+            _dc_cache["data"] = result
+            _dc_cache["ts"] = now
         else:
-            logger.warning("PeeringDB devolvió 0 datacenters. Usando cache/fallback local.")
-            result = _load_peeringdb_disk_cache() or _dc_cache["data"] or _FALLBACK_DATACENTERS
-    except Exception as exc:
-        logger.warning("Error consultando PeeringDB. Usando cache/fallback local: %s", exc)
-        result = _load_peeringdb_disk_cache() or _dc_cache["data"] or _FALLBACK_DATACENTERS
+            logger.warning("PeeringDB devolvió 0 resultados")
+            result = disk or _FALLBACK_DATACENTERS
+            # TTL corto para reintentar pronto
+            _dc_cache["data"] = result
+            _dc_cache["ts"] = now - _DC_TTL + _DC_RETRY_TTL
 
-    _dc_cache["data"] = result
-    _dc_cache["ts"] = now
+    except Exception as exc:
+        logger.warning("PeeringDB no disponible: %s", exc)
+        result = disk or _FALLBACK_DATACENTERS
+        # TTL corto: reintentar en 2 min
+        _dc_cache["data"] = result
+        _dc_cache["ts"] = now - _DC_TTL + _DC_RETRY_TTL
+
     return result
 
 

@@ -3,14 +3,26 @@ SeaCool AI - Rutas del Orquestador Multiagente.
 Endpoints para la simulación de economía circular Datacenter ↔ Comunidad costera.
 """
 
+from datetime import datetime
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.agents.seacool_agent import seacool_agent
-from app.services.seacool_service import seacool_service
+from app.services.seacool_service import seacool_service, KG_CO2_POR_KWH
 from app.services.scenarios_service import scenario_evaluator
+from app.services.api_connectors import (
+    OpenMeteoConnector,
+    ElectricityMapsConnector,
+    CopernicusConnector,
+)
+
+_MESES_ES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre",
+}
 
 router = APIRouter()
 
@@ -45,8 +57,35 @@ class SeaCoolSimulationRequest(BaseModel):
 
 
 class MetricasTecnicas(BaseModel):
-    agua_generada_litros: int
-    ahorro_refrigeracion_kw: int
+    # Loop circular completo
+    calor_residual_mw: float = Field(
+        ..., description="Calor recuperable del DC (MW térmicos)"
+    )
+    agua_total_litros: int = Field(
+        ..., description="Agua total desalinizada por MED (L/día)"
+    )
+    agua_refrigeracion_litros: int = Field(
+        ..., description="Agua consumida para refrigerar el DC (cierre del bucle)"
+    )
+    agua_generada_litros: int = Field(
+        ..., description="Excedente distribuible a la comunidad (L/día)"
+    )
+    ahorro_refrigeracion_kw: int = Field(
+        ..., description="Ahorro eléctrico por chiller de absorción (kW)"
+    )
+    co2_evitado_kg_dia: int = Field(
+        ..., description="CO₂ evitado diario por ahorro en refrigeración (kg)"
+    )
+    eficiencia_loop_pct: float = Field(
+        ..., description="Fracción del agua producida que vuelve al DC (%)"
+    )
+    # Derivados de distribución
+    hogares_abastecidos: Optional[int] = Field(
+        default=None, description="Hogares abastecidos con el excedente urbano"
+    )
+    hectareas_regadas: Optional[int] = Field(
+        default=None, description="Hectáreas regadas con el excedente agrícola"
+    )
 
 
 class Distribucion(BaseModel):
@@ -259,28 +298,101 @@ async def evaluate_scenarios(request: EvaluateScenarioRequest):
         )
 
 
+class SimulateWithContextRequest(BaseModel):
+    """Request para simulación con datos reales del sitio."""
+
+    carga_dc: float = Field(
+        ..., ge=0, le=100, description="Carga del datacenter en %", examples=[75]
+    )
+    latitude: float = Field(
+        36.7, description="Latitud del datacenter (para clima real y temperatura del mar)"
+    )
+    longitude: float = Field(
+        -2.5, description="Longitud del datacenter"
+    )
+    country_code: str = Field(
+        "", max_length=2,
+        description="Código ISO-2 del país (para intensidad de carbono real). "
+                    "Si se omite, se estima por latitud.",
+        examples=["ES"],
+    )
+    # Opcionales — si se omiten se usan datos reales de Open-Meteo / Copernicus
+    temp_ext: Optional[float] = Field(
+        None, ge=-10, le=55,
+        description="Temperatura exterior en °C. Si se omite, se obtiene de Open-Meteo.",
+    )
+    mes: Optional[str] = Field(
+        None, min_length=3, max_length=20,
+        description="Mes en español. Si se omite, se usa el mes actual.",
+    )
+
+
+class SimulateWithContextResponse(SeaCoolSimulationResponse):
+    """Response enriquecida con el contexto real usado."""
+    contexto_real: dict = Field(default_factory=dict)
+
+
 @router.post(
     "/simulate-with-context",
-    response_model=SeaCoolSimulationResponse,
-    summary="Simulación Multiagente con Contexto Real",
+    response_model=SimulateWithContextResponse,
+    summary="Simulación con datos reales del sitio",
     description=(
-        "Versión mejorada de /simulate que integra datos reales del contexto. "
-        "Obtiene clima, agua y energía en tiempo real antes de ejecutar los agentes."
+        "Obtiene temperatura real (Open-Meteo), temperatura del mar (Copernicus) "
+        "e intensidad de carbono de la red (IEA por país) antes de ejecutar el loop. "
+        "El resultado refleja la física real del emplazamiento, no valores genéricos."
     ),
 )
-async def simulate_with_context(request: SeaCoolSimulationRequest):
+async def simulate_with_context(request: SimulateWithContextRequest):
     """
-    Simulación mejorada que obtiene contexto real antes de ejecutar.
+    Flujo:
+    1. Temperatura exterior → Open-Meteo (real) o parámetro manual.
+    2. Temperatura del mar → Copernicus (estimada por latitud + mes).
+    3. Intensidad de carbono → IEA por código de país.
+    4. Simula el loop circular con esos valores reales.
     """
     try:
-        # Aquí se podría hacer fetch de datos reales
-        # y pasarlos al servicio
-        result = await seacool_service.simulate(
-            temp_ext=request.temp_ext,
-            carga_dc=request.carga_dc,
-            mes=request.mes,
+        # Paso 1: clima real en paralelo con temperatura del mar y carbono
+        weather_task = OpenMeteoConnector.get_climate_data(request.latitude, request.longitude)
+        sea_task     = CopernicusConnector.get_soil_and_sea_data(request.latitude, request.longitude)
+        grid_task    = ElectricityMapsConnector.get_grid_carbon_intensity(
+            request.latitude, request.longitude, country_code=request.country_code
         )
-        return SeaCoolSimulationResponse(**result)
+
+        import asyncio
+        weather, sea, grid = await asyncio.gather(weather_task, sea_task, grid_task)
+
+        # Paso 2: resolver temp_ext y mes
+        temp_ext = request.temp_ext
+        if temp_ext is None:
+            temp_ext = (weather or {}).get("current_temp", 22.0)
+
+        mes = request.mes or _MESES_ES[datetime.now().month]
+
+        # Paso 3: parámetros contextuales para el loop
+        sea_surface_temp = (sea or {}).get("sea_surface_temp", 20.0)
+        carbon_g_kwh     = (grid or {}).get("carbon_intensity", KG_CO2_POR_KWH * 1000)
+        carbon_kg_kwh    = carbon_g_kwh / 1000.0
+
+        # Paso 4: simulación con datos reales
+        result = await seacool_service.simulate(
+            temp_ext=temp_ext,
+            carga_dc=request.carga_dc,
+            mes=mes,
+            carbon_intensity_kg_kwh=carbon_kg_kwh,
+            sea_surface_temp_c=sea_surface_temp,
+        )
+
+        return SimulateWithContextResponse(
+            **result,
+            contexto_real={
+                "temp_ext_usada": temp_ext,
+                "mes_usado": mes,
+                "sea_surface_temp_c": sea_surface_temp,
+                "carbon_intensity_g_kwh": carbon_g_kwh,
+                "carbon_source": (grid or {}).get("source", "estimado"),
+                "weather_source": "Open-Meteo (real)" if weather else "fallback",
+            },
+        )
     except Exception as e:
         raise HTTPException(
             status_code=500,

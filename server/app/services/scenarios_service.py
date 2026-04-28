@@ -12,9 +12,8 @@ from datetime import datetime
 from app.services.api_connectors import RealWorldContextAggregator
 from app.services.ai_service import ai_service
 from app.services.seacool_service import (
-    calcular_metricas_tecnicas,
+    calcular_loop_circular,
     DATACENTER_MAX_MW,
-    LITROS_POR_MW_DIA,
 )
 
 # ============================================================================
@@ -160,10 +159,14 @@ class ScenarioEvaluator:
         carbon_intensity = grid.get("carbon_intensity", 150)
         soil_moisture_index = soil_sea.get("soil_moisture_index", 50)
 
-        # Paso 3: Calcular capacidades
+        # Paso 3: Calcular capacidades usando el loop circular real
         potencia_real_mw = dc_power_mw * (carga_dc_pct / 100)
-        water_liters_per_day = int(potencia_real_mw * LITROS_POR_MW_DIA)
-        heating_homes_capacity = int((potencia_real_mw * 1000) / 3)  # 3kW promedio por hogar
+        loop = calcular_loop_circular(carga_dc_pct * (dc_power_mw / DATACENTER_MAX_MW))
+        # El agua disponible para distribuir entre escenarios es el excedente del loop
+        water_liters_per_day = loop["agua_generada_litros"]
+        # Capacidad de calefacción de distrito: chiller de absorción + calor residual directo
+        # ~3 kW de calor por hogar (estimación mediterránea)
+        heating_homes_capacity = int((loop["calor_residual_mw"] * 1000) / 3)
 
         # Paso 4: Mes actual
         if not mes:

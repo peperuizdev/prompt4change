@@ -1,7 +1,13 @@
 """
 SeaCool AI - Servicio del Orquestador Multiagente.
 Gestiona la economía circular entre un Centro de Datos y una comunidad costera.
-Calcula métricas técnicas y orquesta los 3 agentes (Distribuidor, Alerta, ROI).
+
+Loop circular real:
+  DC (electricidad) → calor residual (PUE)
+  → MED desalinización (calor → agua dulce)
+  → agua refrigera el DC (cierra el bucle)
+  → excedente distribuido (agricultura / urbano)
+  → absorción (calor → frío para el DC, ahorro eléctrico)
 """
 
 import json
@@ -11,152 +17,272 @@ from typing import Any, Dict, Optional
 from app.services.ai_service import ai_service
 
 
-# ---- Constantes Físicas del Modelo ----
+# ── Constantes físicas del modelo ────────────────────────────────────────────
 
-DATACENTER_MAX_MW = 50  # Capacidad máxima del datacenter (MW)
-LITROS_POR_MW_DIA = 15_000  # 1 MW continuo genera ~15.000 L/día de agua dulce
-AHORRO_REFRIGERACION_PCT = 0.15  # Ciclo de absorción ahorra ~15% del consumo eléctrico
-KW_POR_MW = 1_000  # Conversión MW -> kW
+DATACENTER_MAX_MW = 50          # Capacidad eléctrica máxima del DC (MW)
 
-# Meses de verano (temperaturas altas, demanda agrícola crítica)
+# PUE (Power Usage Effectiveness) típico de un DC moderno.
+# PUE = 1.4 → el 40 % de la energía eléctrica se convierte en calor recuperable.
+PUE = 1.4
+
+# MED (Multi-Effect Distillation) a baja temperatura (65-75 °C, ideal para
+# calor de DC). Consumo térmico ~80 kWh_th/m³ → GOR ≈ 8.
+# 1 MW_th × 24 h / 80 kWh_th·m⁻³ = 300 m³/día → 300 000 L/MW_th/día
+LITROS_POR_MW_TERMICO_DIA = 300_000
+
+# WUE (Water Use Effectiveness) de un DC refrigerado con agua: ~1.5 L/kWh IT.
+# El agua desalinizada cierra el bucle de refrigeración (torres evaporativas).
+WUE_LITROS_POR_KWH = 1.5
+
+# Chiller de absorción: COP ≈ 0.7 → por cada kW térmico de calor residual
+# se obtienen 0.7 kW de frío, evitando compresores eléctricos convencionales.
+COP_ABSORCION = 0.7
+
+# Intensidad de carbono de la red eléctrica española (~250 g CO₂/kWh, 2024).
+KG_CO2_POR_KWH = 0.25
+
+# Agua necesaria para regar 1 ha en riego por goteo (verano mediterráneo).
+LITROS_POR_HECTAREA_DIA = 7_000
+
+# Consumo diario de agua por hogar (3 personas × 200 L/persona).
+LITROS_POR_HOGAR_DIA = 600
+
+# Meses de verano (demanda agrícola crítica en zona mediterránea)
 MESES_VERANO = {"junio", "julio", "agosto", "septiembre"}
-MESES_TRANS = {"mayo", "octubre"}  # Meses de transición
+MESES_TRANS = {"mayo", "octubre"}
 
 
-def calcular_metricas_tecnicas(carga_dc: float) -> Dict[str, int]:
+# ── Cálculos deterministicos ──────────────────────────────────────────────────
+
+def calcular_loop_circular(
+    carga_dc: float,
+    carbon_intensity_kg_kwh: float = KG_CO2_POR_KWH,
+    sea_surface_temp_c: float = 20.0,
+) -> Dict[str, Any]:
     """
-    Calcula las métricas técnicas del sistema basándose en la carga del datacenter.
+    Calcula el loop circular completo partiendo de la carga eléctrica del DC.
 
-    Args:
-        carga_dc: Porcentaje de carga del datacenter (0-100).
+    Parámetros opcionales para reflejar la realidad local:
+      - carbon_intensity_kg_kwh: intensidad de carbono de la red del país
+        (defecto: España 0.25 kg/kWh). Afecta el CO₂ evitado.
+      - sea_surface_temp_c: temperatura del agua de mar disponible para MED
+        (defecto: 20°C). Agua más fría → mayor ΔT → más eficiencia MED.
 
-    Returns:
-        Dict con agua_generada_litros y ahorro_refrigeracion_kw.
+    Flujo físico:
+      1. Potencia eléctrica del DC
+      2. Calor residual recuperable (PUE-1)
+      3. Agua total desalinizada por MED (con corrección por temperatura del mar)
+      4. Agua consumida internamente para refrigerar el DC (cierre del bucle)
+      5. Agua excedente disponible para distribución exterior
+      6. Ahorro eléctrico del chiller de absorción (COP 0.7)
+      7. CO₂ evitado por ese ahorro (con intensidad real de la red)
     """
-    # Potencia real usada (MW)
-    potencia_real_mw = DATACENTER_MAX_MW * (carga_dc / 100.0)
+    # 1 · Potencia eléctrica real
+    potencia_mw = DATACENTER_MAX_MW * (carga_dc / 100.0)
 
-    # Agua generada: proporcional a la potencia (calor residual)
-    agua_litros = int(potencia_real_mw * LITROS_POR_MW_DIA)
+    # 2 · Calor residual recuperable
+    calor_residual_mw = round(potencia_mw * (PUE - 1.0), 2)
 
-    # Ahorro en refrigeración: 15% del consumo eléctrico total (en kW)
-    ahorro_kw = int(potencia_real_mw * KW_POR_MW * AHORRO_REFRIGERACION_PCT)
+    # 3 · Agua total desalinizada (MED térmica)
+    #     Corrección por temperatura del mar: cada °C por debajo de 20°C
+    #     mejora el ΔT disponible, incrementando el GOR ~0.4 % por °C.
+    sea_factor = round(1.0 + (20.0 - sea_surface_temp_c) * 0.004, 3)
+    agua_total_litros = int(calor_residual_mw * LITROS_POR_MW_TERMICO_DIA * sea_factor)
+
+    # 4 · Agua consumida para refrigerar el DC (cierre del bucle)
+    kwh_it_dia = potencia_mw * 1_000 * 24
+    agua_refrigeracion_litros = int(kwh_it_dia * WUE_LITROS_POR_KWH)
+
+    # 5 · Excedente distribuible
+    agua_excedente_litros = max(0, agua_total_litros - agua_refrigeracion_litros)
+
+    # 6 · Ahorro eléctrico del chiller de absorción
+    ahorro_refrigeracion_kw = int(calor_residual_mw * 1_000 * COP_ABSORCION)
+
+    # 7 · CO₂ evitado (con la intensidad de carbono real de la red local)
+    co2_evitado_kg_dia = int(ahorro_refrigeracion_kw * 24 * carbon_intensity_kg_kwh)
+
+    eficiencia_loop_pct = (
+        round(agua_refrigeracion_litros / agua_total_litros * 100, 1)
+        if agua_total_litros > 0 else 0
+    )
 
     return {
-        "agua_generada_litros": agua_litros,
-        "ahorro_refrigeracion_kw": ahorro_kw,
+        "calor_residual_mw": calor_residual_mw,
+        "agua_total_litros": agua_total_litros,
+        "agua_refrigeracion_litros": agua_refrigeracion_litros,
+        "eficiencia_loop_pct": eficiencia_loop_pct,
+        "ahorro_refrigeracion_kw": ahorro_refrigeracion_kw,
+        "co2_evitado_kg_dia": co2_evitado_kg_dia,
+        "carbon_intensity_kg_kwh": round(carbon_intensity_kg_kwh, 3),
+        "sea_factor": sea_factor,
+        "agua_generada_litros": agua_excedente_litros,
     }
 
 
-def calcular_distribucion_base(temp_ext: float, mes: str) -> Dict[str, int]:
+def calcular_distribucion_base(
+    temp_ext: float,
+    mes: str,
+    agua_excedente_litros: int,
+) -> Dict[str, Any]:
     """
-    Calcula una distribución base urbana/agrícola según temperatura y mes.
-    Este cálculo determinista sirve como guía para el agente IA.
+    Calcula distribución urbana/agrícola del excedente y métricas derivadas.
 
     Args:
         temp_ext: Temperatura exterior en °C.
-        mes: Nombre del mes (en español, minúsculas).
+        mes: Nombre del mes en español.
+        agua_excedente_litros: Litros disponibles para distribución exterior.
 
     Returns:
-        Dict con urbana_porcentaje y agricola_porcentaje.
+        Dict con porcentajes, litros por sector, hogares y hectáreas.
     """
     mes_lower = mes.lower().strip()
 
-    # Lógica basada en estrés hídrico agrícola
     if temp_ext > 35:
-        # Calor extremo: supervivencia agrícola crítica
         agricola = 80
     elif temp_ext > 30:
-        # Calor alto: priorización agrícola fuerte
         agricola = 70
     elif mes_lower in MESES_VERANO:
-        # Verano con temperatura moderada
         agricola = 60
     elif mes_lower in MESES_TRANS:
-        # Transición primavera/otoño
         agricola = 45
     elif temp_ext > 25:
-        # Temperatura media-alta fuera de verano
         agricola = 55
     else:
-        # Invierno o temperaturas bajas: reparto equitativo
         agricola = 35
 
+    urbana = 100 - agricola
+
+    agua_agricola_litros = int(agua_excedente_litros * agricola / 100)
+    agua_urbana_litros = int(agua_excedente_litros * urbana / 100)
+
+    hectareas_regadas = int(agua_agricola_litros / LITROS_POR_HECTAREA_DIA)
+    hogares_abastecidos = int(agua_urbana_litros / LITROS_POR_HOGAR_DIA)
+
     return {
-        "urbana_porcentaje": 100 - agricola,
+        "urbana_porcentaje": urbana,
         "agricola_porcentaje": agricola,
+        "agua_urbana_litros": agua_urbana_litros,
+        "agua_agricola_litros": agua_agricola_litros,
+        "hogares_abastecidos": hogares_abastecidos,
+        "hectareas_regadas": hectareas_regadas,
     }
 
 
-def evaluar_alerta(temp_ext: float, carga_dc: float, agua_litros: int) -> str:
-    """
-    Evalúa condiciones de alerta del sistema.
-
-    Returns:
-        Mensaje de alerta o "Nominal".
-    """
+def evaluar_alerta(
+    temp_ext: float,
+    carga_dc: float,
+    agua_excedente_litros: int,
+    eficiencia_loop_pct: float,
+) -> str:
+    """Evalúa condiciones de alerta del sistema."""
     alertas = []
 
     if temp_ext > 40:
-        alertas.append("CRÍTICO: Ola de calor extrema")
+        alertas.append("CRÍTICO: Ola de calor extrema — eficiencia MED reducida")
     elif temp_ext > 35:
-        alertas.append("ALERTA: Temperatura peligrosamente alta")
+        alertas.append("ALERTA: Temperatura alta — vigilar rendimiento del chiller")
 
     if carga_dc > 90:
-        alertas.append("Datacenter cerca de capacidad máxima")
+        alertas.append("DC cerca de capacidad máxima — excedente hídrico máximo")
 
-    if agua_litros < 100_000 and temp_ext > 30:
-        alertas.append("Producción de agua insuficiente para demanda estival")
+    if agua_excedente_litros < 500_000 and temp_ext > 30:
+        alertas.append("Excedente hídrico insuficiente para demanda agrícola estival")
 
-    if not alertas:
-        return "Nominal"
+    if eficiencia_loop_pct < 20:
+        alertas.append("Loop circular ineficiente — revisar WUE del sistema de refrigeración")
 
-    return ". ".join(alertas)
+    return ". ".join(alertas) if alertas else "Nominal"
 
 
-# ---- System Prompt del Orquestador ----
+# ── System Prompt del Orquestador ─────────────────────────────────────────────
 
-SEACOOL_SYSTEM_PROMPT = """Eres el Orquestador Multiagente del sistema SeaCool AI. Tu objetivo es gestionar la economía circular entre un Centro de Datos (que genera calor residual) y una comunidad costera con estrés hídrico (Almería, España), utilizando refrigeración por absorción y destilación de agua marina.
+SEACOOL_SYSTEM_PROMPT = """Eres el Orquestador Multiagente del sistema SeaCool AI.
+Gestionas la economía circular entre un Centro de Datos (DC) costero y una comunidad con estrés hídrico (Almería, España).
 
-[MCP READY: Actualmente recibes el contexto de entorno vía payload JSON, pero este bloque está diseñado para ser reemplazado por la ingesta automática de herramientas del Model Context Protocol (clima local, sensores IoT del servidor)].
+═══════════════════════════════════════════
+LOOP CIRCULAR REAL (usa estos valores exactos)
+═══════════════════════════════════════════
 
-REGLAS FÍSICAS BÁSICAS (Usa esto para tus cálculos aproximados):
-- A mayor carga del datacenter, mayor calor residual generado.
-- El calor residual evapora agua de mar: 1 MW de calor continuo genera aprox. 15.000 litros de agua dulce al día.
-- El ciclo de absorción devuelve frío al servidor: ahorra aprox. un 15% del consumo eléctrico total del datacenter en refrigeración.
-- En verano (temperaturas > 30°C), la demanda agrícola (invernaderos) se dispara y entra en riesgo de supervivencia.
-- Capacidad máxima del datacenter: 50MW.
+PASO 1 · Calor residual del DC
+  calor_residual_mw = potencia_mw × (PUE - 1)
+  PUE = 1.4  →  el 40 % de la energía eléctrica se convierte en calor recuperable
+  Ejemplo: DC a 75 % de 50 MW → potencia = 37.5 MW → calor = 37.5 × 0.4 = 15 MW
 
-INSTRUCCIONES MULTIAGENTE:
-Debes simular el razonamiento interno de 3 agentes específicos y tomar una decisión final orquestada:
-1. Agente Distribuidor: Analiza el mes y la temperatura para decidir el reparto % entre uso Urbano y uso Agrícola. Si hace mucho calor, prioriza supervivencia agrícola.
-2. Agente Alerta: Evalúa si hay riesgo de desabastecimiento o picos de calor extremos y emite un mensaje corto (máx 15 palabras). Si todo está bien, emite un estado "Nominal".
-3. Agente ROI: Calcula el beneficio económico y energético del bucle de absorción (mensaje corto, máx 15 palabras).
+PASO 2 · Desalinización MED (Multi-Effect Distillation)
+  agua_total_litros = calor_residual_mw × 300 000 L/MW·día
+  (tecnología MED a 65-75 °C, consumo térmico ~80 kWh_th/m³, GOR ≈ 8)
+  Ejemplo: 15 MW × 300 000 = 4 500 000 L/día
 
-FORMATO DE SALIDA ESTRICTO:
-Debes responder ÚNICAMENTE con un objeto JSON válido, sin Markdown, sin explicaciones previas ni posteriores, usando exactamente esta estructura:
+PASO 3 · Cierre del bucle: agua para refrigeración interna del DC
+  agua_refrigeracion_litros = (potencia_mw × 1000 kW/MW × 24 h) × 1.5 L/kWh
+  (WUE típica de DC refrigerado con agua: 1.5 L/kWh IT)
+  Ejemplo: 37.5 MW → 37 500 kW × 24 h × 1.5 = 1 350 000 L/día
+
+PASO 4 · Excedente distribuible (lo que financia el impacto social)
+  agua_excedente = agua_total - agua_refrigeracion
+  Ejemplo: 4 500 000 - 1 350 000 = 3 150 000 L/día
+
+PASO 5 · Chiller de absorción (frío para el DC, ahorro eléctrico)
+  ahorro_kw = calor_residual_mw × 1000 × COP_absorcion
+  COP_absorcion = 0.7  (chiller de LiBr estándar)
+  Ejemplo: 15 MW × 1000 × 0.7 = 10 500 kW ahorrados
+
+PASO 6 · CO₂ evitado (España: ~0.25 kg CO₂/kWh)
+  co2_kg_dia = ahorro_kw × 24 h × 0.25
+
+═══════════════════════════════════════════
+AGENTES INTERNOS
+═══════════════════════════════════════════
+
+Agente Distribuidor:
+  - Decide reparto % urbano / agrícola del EXCEDENTE según temperatura y mes.
+  - Verano/calor extremo: prioriza supervivencia agrícola (invernaderos Almería).
+  - Invierno: reparto más equitativo.
+  - Justifica brevemente por qué ese reparto (máx 20 palabras).
+
+Agente Alerta:
+  - Evalúa si el loop opera correctamente.
+  - Alerta si: temp > 35 °C (eficiencia MED cae), carga > 90 % (riesgo sobrecalentamiento),
+    excedente < 500 000 L y demanda agrícola crítica.
+  - Si todo nominal: mensaje corto confirmando estado óptimo del loop (máx 15 palabras).
+
+Agente ROI:
+  - Comunica el valor económico del ahorro de refrigeración y el agua producida.
+  - Incluye kW ahorrados y litros excedentes (máx 15 palabras).
+
+═══════════════════════════════════════════
+FORMATO DE SALIDA — JSON estricto, sin markdown
+═══════════════════════════════════════════
 
 {
   "metricas_tecnicas": {
-    "agua_generada_litros": [entero, calculado según la carga del DC],
-    "ahorro_refrigeracion_kw": [entero, calculado según el ciclo de absorción]
+    "calor_residual_mw": [float, paso 1],
+    "agua_total_litros": [int, paso 2],
+    "agua_refrigeracion_litros": [int, paso 3],
+    "agua_generada_litros": [int, paso 4 — excedente distribuible],
+    "ahorro_refrigeracion_kw": [int, paso 5],
+    "co2_evitado_kg_dia": [int, paso 6],
+    "eficiencia_loop_pct": [float, agua_refrigeracion / agua_total × 100]
   },
   "distribucion": {
-    "urbana_porcentaje": [entero de 0 a 100],
-    "agricola_porcentaje": [entero de 0 a 100]
+    "urbana_porcentaje": [int, 0-100],
+    "agricola_porcentaje": [int, 0-100]
   },
   "mensajes_agentes": {
-    "agente_distribuidor": "[Breve justificación de por qué se ha elegido ese reparto %]",
-    "agente_alerta": "[Mensaje de alerta o estado Nominal]",
-    "agente_roi": "[Mensaje sobre el ahorro energético]"
+    "agente_distribuidor": "[justificación del reparto]",
+    "agente_alerta": "[estado o alerta del loop]",
+    "agente_roi": "[valor económico-energético del loop]"
   }
 }"""
 
 
+# ── Servicio ──────────────────────────────────────────────────────────────────
+
 class SeaCoolService:
     """
     Servicio del Orquestador Multiagente SeaCool AI.
-    Combina cálculos deterministas (física) con razonamiento IA (agentes).
+    Combina cálculos deterministas (física del loop) con razonamiento IA (agentes).
     """
 
     async def simulate(
@@ -164,63 +290,84 @@ class SeaCoolService:
         temp_ext: float,
         carga_dc: float,
         mes: str,
+        carbon_intensity_kg_kwh: float = KG_CO2_POR_KWH,
+        sea_surface_temp_c: float = 20.0,
     ) -> Dict[str, Any]:
         """
-        Ejecuta la simulación completa del sistema SeaCool.
+        Ejecuta la simulación completa del loop circular.
 
-        1. Calcula métricas técnicas deterministamente.
-        2. Calcula distribución base como guía.
-        3. Envía todo al LLM para orquestación multiagente.
-        4. Si el LLM no responde, usa fallback determinista.
-
-        Args:
-            temp_ext: Temperatura exterior (°C).
-            carga_dc: Carga del datacenter (0-100%).
-            mes: Mes actual en español.
-
-        Returns:
-            Objeto JSON con la respuesta del orquestador.
+        1. Calcula el loop deterministamente (física real).
+        2. Calcula distribución + métricas derivadas.
+        3. Envía al LLM para razonamiento de los agentes.
+        4. Fallback determinista si el LLM falla.
         """
-        # Paso 1: Cálculos deterministas
-        metricas = calcular_metricas_tecnicas(carga_dc)
-        distribucion = calcular_distribucion_base(temp_ext, mes)
-        alerta = evaluar_alerta(temp_ext, carga_dc, metricas["agua_generada_litros"])
+        # Paso 1: Loop circular determinista (con parámetros contextuales reales)
+        loop = calcular_loop_circular(
+            carga_dc,
+            carbon_intensity_kg_kwh=carbon_intensity_kg_kwh,
+            sea_surface_temp_c=sea_surface_temp_c,
+        )
 
-        # Paso 2: Intentar orquestación con IA
+        # Paso 2: Distribución del excedente
+        distribucion = calcular_distribucion_base(
+            temp_ext, mes, loop["agua_generada_litros"]
+        )
+
+        # Paso 3: Alerta
+        alerta = evaluar_alerta(
+            temp_ext,
+            carga_dc,
+            loop["agua_generada_litros"],
+            loop["eficiencia_loop_pct"],
+        )
+
+        # Paso 4: Orquestación IA (los agentes razonan sobre los datos calculados)
         try:
             resultado_ia = await self._orquestar_con_ia(
-                temp_ext, carga_dc, mes, metricas
+                temp_ext, carga_dc, mes, loop, distribucion
             )
             if resultado_ia:
+                # Enriquecer con campos que el LLM no recalcula
+                resultado_ia["metricas_tecnicas"].setdefault(
+                    "hogares_abastecidos", distribucion["hogares_abastecidos"]
+                )
+                resultado_ia["metricas_tecnicas"].setdefault(
+                    "hectareas_regadas", distribucion["hectareas_regadas"]
+                )
                 return resultado_ia
         except Exception as e:
-            print(f"⚠️ SeaCool: Error en orquestación IA, usando fallback: {e}")
+            print(f"⚠️  SeaCool: Error en orquestación IA, usando fallback: {e}")
 
-        # Paso 3: Fallback determinista (sin IA)
-        return self._construir_fallback(
-            metricas, distribucion, alerta, temp_ext, carga_dc
-        )
+        # Paso 5: Fallback determinista
+        return self._construir_fallback(loop, distribucion, alerta, temp_ext, carga_dc)
 
     async def _orquestar_con_ia(
         self,
         temp_ext: float,
         carga_dc: float,
         mes: str,
-        metricas: Dict[str, int],
+        loop: Dict[str, Any],
+        distribucion: Dict[str, Any],
     ) -> Optional[Dict[str, Any]]:
-        """
-        Envía los datos al LLM con el system prompt del orquestador
-        y parsea la respuesta JSON.
-        """
+        potencia_mw = DATACENTER_MAX_MW * (carga_dc / 100.0)
+
         user_prompt = (
-            f"DATOS DE ENTRADA (Simulación actual):\n"
-            f"- Temperatura exterior: {temp_ext}°C\n"
-            f"- Carga del Datacenter: {carga_dc}% (Capacidad máx: {DATACENTER_MAX_MW}MW)\n"
-            f"- Mes actual: {mes}\n\n"
-            f"DATOS PRE-CALCULADOS (referencia, puedes ajustar si razonas mejor):\n"
-            f"- Agua generada estimada: {metricas['agua_generada_litros']} litros/día\n"
-            f"- Ahorro refrigeración estimado: {metricas['ahorro_refrigeracion_kw']} kW\n\n"
-            f"Ejecuta la simulación multiagente y responde con el JSON."
+            f"DATOS DE ENTRADA:\n"
+            f"  · Temperatura exterior: {temp_ext} °C\n"
+            f"  · Carga DC: {carga_dc} % ({potencia_mw:.1f} MW / {DATACENTER_MAX_MW} MW)\n"
+            f"  · Mes: {mes}\n\n"
+            f"LOOP CIRCULAR PRE-CALCULADO (usa estos valores exactos en el JSON):\n"
+            f"  · calor_residual_mw:         {loop['calor_residual_mw']}\n"
+            f"  · agua_total_litros:          {loop['agua_total_litros']:,}\n"
+            f"  · agua_refrigeracion_litros:  {loop['agua_refrigeracion_litros']:,}  ← cierra el bucle\n"
+            f"  · agua_generada_litros:       {loop['agua_generada_litros']:,}  ← excedente distribuible\n"
+            f"  · ahorro_refrigeracion_kw:    {loop['ahorro_refrigeracion_kw']:,}\n"
+            f"  · co2_evitado_kg_dia:         {loop['co2_evitado_kg_dia']:,}\n"
+            f"  · eficiencia_loop_pct:        {loop['eficiencia_loop_pct']}\n\n"
+            f"DISTRIBUCIÓN BASE (puedes ajustar si razonas mejor):\n"
+            f"  · urbana_porcentaje:   {distribucion['urbana_porcentaje']} %\n"
+            f"  · agricola_porcentaje: {distribucion['agricola_porcentaje']} %\n\n"
+            f"Ejecuta los 3 agentes y responde con el JSON estricto."
         )
 
         response = await ai_service.chat(
@@ -229,21 +376,15 @@ class SeaCoolService:
                 {"role": "user", "content": user_prompt},
             ],
             temperature=0.3,
-            max_tokens=1000,
+            max_tokens=1_200,
         )
 
-        # Intentar parsear la respuesta como JSON
         return self._parsear_respuesta_ia(response)
 
     def _parsear_respuesta_ia(self, response: str) -> Optional[Dict[str, Any]]:
-        """
-        Intenta extraer un JSON válido de la respuesta del LLM.
-        Maneja markdown code blocks y texto extra.
-        """
         if not response:
             return None
 
-        # Limpiar posibles markdown code blocks
         cleaned = response.strip()
         cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
         cleaned = re.sub(r"\s*```$", "", cleaned)
@@ -251,26 +392,14 @@ class SeaCoolService:
 
         try:
             parsed = json.loads(cleaned)
-            # Validar estructura mínima
-            if all(
-                k in parsed
-                for k in ["metricas_tecnicas", "distribucion", "mensajes_agentes"]
-            ):
+            if all(k in parsed for k in ["metricas_tecnicas", "distribucion", "mensajes_agentes"]):
                 return parsed
         except json.JSONDecodeError:
-            # Intentar encontrar JSON dentro del texto
             match = re.search(r"\{[\s\S]*\}", cleaned)
             if match:
                 try:
                     parsed = json.loads(match.group())
-                    if all(
-                        k in parsed
-                        for k in [
-                            "metricas_tecnicas",
-                            "distribucion",
-                            "mensajes_agentes",
-                        ]
-                    ):
+                    if all(k in parsed for k in ["metricas_tecnicas", "distribucion", "mensajes_agentes"]):
                         return parsed
                 except json.JSONDecodeError:
                     pass
@@ -279,39 +408,36 @@ class SeaCoolService:
 
     def _construir_fallback(
         self,
-        metricas: Dict[str, int],
-        distribucion: Dict[str, int],
+        loop: Dict[str, Any],
+        distribucion: Dict[str, Any],
         alerta: str,
         temp_ext: float,
         carga_dc: float,
     ) -> Dict[str, Any]:
-        """
-        Construye la respuesta determinista cuando el LLM no está disponible.
-        """
-        # Generar mensajes de agentes deterministas
         if temp_ext > 35:
-            msg_distribuidor = (
-                f"Calor extremo ({temp_ext}°C): prioridad máxima a supervivencia agrícola."
-            )
+            msg_dist = f"Calor extremo ({temp_ext} °C): 80 % excedente a riego de supervivencia."
         elif temp_ext > 30:
-            msg_distribuidor = (
-                f"Temperatura alta ({temp_ext}°C): se incrementa riego agrícola."
-            )
+            msg_dist = f"Temperatura alta ({temp_ext} °C): mayor proporción a agricultura."
         else:
-            msg_distribuidor = (
-                f"Condiciones moderadas ({temp_ext}°C): reparto equilibrado."
-            )
+            msg_dist = f"Condiciones moderadas: reparto equilibrado urbano/agrícola."
 
         msg_roi = (
-            f"Ahorro de {metricas['ahorro_refrigeracion_kw']} kW "
-            f"por absorción al {carga_dc}% de carga."
+            f"Loop activo: {loop['ahorro_refrigeracion_kw']:,} kW ahorrados, "
+            f"{loop['agua_generada_litros']:,} L/día de excedente."
         )
 
         return {
-            "metricas_tecnicas": metricas,
-            "distribucion": distribucion,
+            "metricas_tecnicas": {
+                **loop,
+                "hogares_abastecidos": distribucion["hogares_abastecidos"],
+                "hectareas_regadas": distribucion["hectareas_regadas"],
+            },
+            "distribucion": {
+                "urbana_porcentaje": distribucion["urbana_porcentaje"],
+                "agricola_porcentaje": distribucion["agricola_porcentaje"],
+            },
             "mensajes_agentes": {
-                "agente_distribuidor": msg_distribuidor,
+                "agente_distribuidor": msg_dist,
                 "agente_alerta": alerta,
                 "agente_roi": msg_roi,
             },
