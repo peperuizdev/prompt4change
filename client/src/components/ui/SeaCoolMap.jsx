@@ -151,7 +151,7 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
     <div className="flex flex-col" style={{ height }}>
 
       {/* ── Control bar ── */}
-      <div className="flex flex-wrap items-center h-12 gap-3 px-4 bg-white border-b border-slate-200 shrink-0">
+      <div className="flex flex-wrap items-center min-h-[48px] py-2 gap-3 px-4 bg-white border-b border-slate-200 shrink-0 relative z-[1001]">
 
         <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
           <button
