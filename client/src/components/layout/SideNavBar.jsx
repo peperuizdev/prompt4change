@@ -5,6 +5,7 @@ const navItems = [
   { to: '/agents', icon: 'smart_toy',   label: 'AI Agent Monitor',  fill: true },
   { to: '/farmer', icon: 'agriculture', label: 'Farmer Portal',     fill: true },
   { to: '/esg',    icon: 'assessment',  label: 'ESG Reports',       fill: true },
+  { to: '/audit',  icon: 'fact_check',  label: 'Solution Audit',    fill: true },
 ]
 
 export default function SideNavBar() {

@@ -5,6 +5,7 @@ import GlobalDashboard from './pages/GlobalDashboard'
 import AIAgentMonitor from './pages/AIAgentMonitor'
 import FarmerPortal from './pages/FarmerPortal'
 import ESGReports from './pages/ESGReports'
+import AuditPage from './pages/AuditPage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
             <Route path="/agents" element={<AIAgentMonitor />} />
             <Route path="/farmer" element={<FarmerPortal />} />
             <Route path="/esg"    element={<ESGReports />} />
+            <Route path="/audit"  element={<AuditPage />} />
           </Routes>
         </div>
       </main>
