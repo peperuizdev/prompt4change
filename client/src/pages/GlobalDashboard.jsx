@@ -702,8 +702,8 @@ export default function GlobalDashboard() {
 
   return (
     <>
-      <div className="flex" style={{ height: '100%' }}>
-        <div className="relative flex-1 min-w-0">
+      <div className="flex flex-col md:flex-row relative" style={{ height: '100%' }}>
+        <div className="relative flex-1 min-w-0 h-full">
           {error && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
               Error: {error}
@@ -719,7 +719,7 @@ export default function GlobalDashboard() {
         </div>
 
         {panelData && (
-          <div className="w-[420px] flex-shrink-0 border-l border-slate-200 overflow-hidden">
+          <div className="w-full h-[75vh] absolute bottom-0 left-0 z-[2000] md:relative md:h-full md:w-[420px] flex-shrink-0 border-t md:border-t-0 md:border-l border-slate-200 overflow-hidden bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.15)] md:shadow-none rounded-t-3xl md:rounded-none transition-all duration-300">
             {panelMode === 'preview' && panelData.type === 'region' && (
               <RegionPreviewPanel region={panelData.item} onAnalyze={handleStartAnalysis} onClose={resetPanel} />
             )}
