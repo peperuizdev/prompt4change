@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { jsPDF } from 'jspdf'
 import MetricCard from '../components/ui/MetricCard'
+import DatacenterAgent from '../components/ui/DatacenterAgent'
 import { getRegions } from '../api/client'
 
 const ODS = [
@@ -441,6 +442,8 @@ export default function ESGReports() {
 
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">{zonePlan.title}</h2>
               <p className="mt-3 max-w-3xl text-sm sm:text-base leading-7 text-blue-100/85">{zonePlan.summary}</p>
+
+              <DatacenterAgent />
 
               <div className="mt-5 flex flex-wrap gap-2">
                 {zonePlan.badges.map(badge => (
