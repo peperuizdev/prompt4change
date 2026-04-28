@@ -361,7 +361,7 @@ export default function GlobalDashboard() {
 
   return (
     <>
-      <div className="flex" style={{ height: 'calc(100vh - 64px)', margin: '-40px' }}>
+      <div className="flex" style={{ height: 'calc(100vh - 56px)' }}>
         <div className="flex-1 relative min-w-0">
           {error && (
             <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
