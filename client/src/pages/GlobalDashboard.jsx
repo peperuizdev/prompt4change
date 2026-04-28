@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import SeaCoolMap from '../components/ui/SeaCoolMap'
-import { analyzeRegion } from '../api/client'
+import { analyzeRegion, analyzeDC } from '../api/client'
 
 const URGENCY_COLOR = {
   critical: { badge: 'bg-red-100 text-red-700' },
@@ -179,20 +179,179 @@ function AnalysisPanel({ region, analysis, loading, onClose }) {
   )
 }
 
+function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
+  const stressColor = wri?.bws_score >= 4.5 ? '#ef4444' : wri?.bws_score >= 3.5 ? '#f97316' : '#eab308'
+  const urgencyStyle = URGENCY_COLOR[analysis?.hydro_agent?.urgency] ?? URGENCY_COLOR.high
+
+  return (
+    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+      <div className="bg-[#0e7490] text-white p-5 flex-shrink-0">
+        <div className="flex items-start justify-between mb-3">
+          <div>
+            <div className="text-xs font-bold text-cyan-200 uppercase tracking-widest mb-1">Datacenter · PeeringDB</div>
+            <h2 className="text-base font-bold leading-tight">{dc.name}</h2>
+            <p className="text-cyan-200 text-sm">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
+            <span className="material-symbols-outlined text-white text-lg">close</span>
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className="bg-white/10 rounded-lg p-2 text-center">
+            <div className="text-lg font-black">{estimatedMw ?? '…'} MW</div>
+            <div className="text-[10px] text-cyan-200">calor estimado</div>
+          </div>
+          <div className="bg-white/10 rounded-lg p-2 text-center">
+            <div className="text-lg font-black">{dc.net_count}</div>
+            <div className="text-[10px] text-cyan-200">redes conectadas</div>
+          </div>
+        </div>
+      </div>
+
+      {wri && (
+        <div className="px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0">
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Estrés hídrico local · WRI Aqueduct 4.0</p>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: stressColor }} />
+            <span className="text-sm font-semibold text-slate-700">{wri.bws_label}</span>
+            <span className="text-xs text-slate-400">· {wri.bws_score?.toFixed(2)}/5</span>
+          </div>
+          {wri.basin && <p className="text-[11px] text-slate-400 mt-0.5">Cuenca: {wri.basin}</p>}
+          <p className="text-[10px] text-slate-400 mt-0.5">Consulta en tiempo real a WRI CARTO</p>
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border-4 border-cyan-100" />
+            <div className="absolute inset-0 rounded-full border-4 border-t-[#0e7490] animate-spin" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#0e7490]">Agentes analizando...</p>
+            <p className="text-xs text-slate-400 mt-1">Cruzando WRI + PeeringDB</p>
+          </div>
+        </div>
+      )}
+
+      {!loading && analysis && (
+        <div className="flex-1 p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white rounded-xl border p-3 text-center col-span-2">
+              <div className="text-2xl font-black text-[#0e7490]">
+                {((estimatedMw ?? 0) * 15000 / 1000).toFixed(0)}k L/día
+              </div>
+              <div className="text-xs text-slate-500">agua potable producible</div>
+            </div>
+            <div className="bg-white rounded-xl border p-3 text-center">
+              <div className="text-lg font-black text-secondary">
+                {Number(analysis.distribution_agent?.households_supplied ?? 0).toLocaleString('es-ES')}
+              </div>
+              <div className="text-[10px] text-slate-500">hogares/día</div>
+            </div>
+            <div className="bg-white rounded-xl border p-3 text-center">
+              <div className="text-lg font-black text-purple-600">{analysis.impact_agent?.roi_years}a</div>
+              <div className="text-[10px] text-slate-500">payback</div>
+            </div>
+          </div>
+
+          <AgentBlock icon="water_drop" title="Agente Hídrico" color="border-blue-400" delay={0}>
+            <p className="text-xs text-slate-700 mb-2">{analysis.hydro_agent?.assessment}</p>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${urgencyStyle.badge}`}>
+              {String(analysis.hydro_agent?.urgency ?? '').toUpperCase()}
+            </span>
+          </AgentBlock>
+
+          <AgentBlock icon="thermostat" title="Agente Térmico" color="border-cyan-400" delay={150}>
+            <p className="text-xs text-slate-700 mb-2">{analysis.thermal_agent?.reasoning}</p>
+            <div className="flex gap-4">
+              <div className="text-center">
+                <div className="text-base font-bold text-cyan-600">{analysis.thermal_agent?.dc_heat_mw} MW</div>
+                <div className="text-[9px] text-slate-400">calor DC</div>
+              </div>
+              <div className="text-center">
+                <div className="text-base font-bold text-blue-600">
+                  {((analysis.thermal_agent?.daily_water_liters ?? 0) / 1000).toFixed(0)}k L
+                </div>
+                <div className="text-[9px] text-slate-400">agua/día</div>
+              </div>
+            </div>
+          </AgentBlock>
+
+          <AgentBlock icon="trending_up" title="Agente Impacto" color="border-purple-400" delay={300}>
+            <div className="bg-slate-50 rounded-lg p-3 mb-3">
+              <p className="text-xs text-slate-700 italic">"{analysis.impact_agent?.pitch}"</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center mb-2">
+              <div>
+                <div className="text-sm font-bold text-purple-600">{analysis.impact_agent?.investment_m_eur}M€</div>
+                <div className="text-[9px] text-slate-400">inversión</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-purple-600">{analysis.impact_agent?.bankability_score}/10</div>
+                <div className="text-[9px] text-slate-400">bankabilidad</div>
+              </div>
+              <div>
+                <div className="text-sm font-bold text-orange-500">{Number(analysis.impact_agent?.co2_avoided_tonnes_year ?? 0).toLocaleString()}</div>
+                <div className="text-[9px] text-slate-400">t CO₂/año</div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(analysis.impact_agent?.sdgs ?? []).map(s => (
+                <span key={s} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-secondary/10 text-secondary">ODS {s}</span>
+              ))}
+            </div>
+          </AgentBlock>
+
+          <div className="text-[9px] text-slate-400 pt-1">
+            MW estimado por fórmula net_count^0.65 · Estrés hídrico: WRI Aqueduct 4.0 en tiempo real
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function GlobalDashboard() {
   const [selectedRegion, setSelectedRegion] = useState(null)
+  const [selectedDC, setSelectedDC]         = useState(null)
+  const [panelData, setPanelData]           = useState(null)  // { type: 'region'|'dc', item, wri?, estimated_mw? }
   const [analysis, setAnalysis]             = useState(null)
   const [loading, setLoading]               = useState(false)
   const [error, setError]                   = useState(null)
 
-  async function handleRegionClick(region) {
-    setSelectedRegion(region)
+  function resetPanel() {
+    setSelectedRegion(null)
+    setSelectedDC(null)
+    setPanelData(null)
     setAnalysis(null)
     setError(null)
+  }
+
+  async function handleRegionClick(region) {
+    resetPanel()
+    setSelectedRegion(region)
+    setPanelData({ type: 'region', item: region })
     setLoading(true)
     try {
       const result = await analyzeRegion(region.id)
       setAnalysis(result.analysis)
+    } catch (e) {
+      setError(e.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDCClick(dc) {
+    resetPanel()
+    setSelectedDC(dc)
+    setPanelData({ type: 'dc', item: dc })
+    setLoading(true)
+    try {
+      const result = await analyzeDC(dc)
+      setAnalysis(result.analysis)
+      setPanelData({ type: 'dc', item: dc, wri: result.wri, estimated_mw: result.estimated_mw })
     } catch (e) {
       setError(e.message)
     } finally {
@@ -209,17 +368,21 @@ export default function GlobalDashboard() {
               Error: {error}
             </div>
           )}
-          <SeaCoolMap height="100%" onRegionClick={handleRegionClick} selectedId={selectedRegion?.id} />
+          <SeaCoolMap
+            height="100%"
+            onRegionClick={handleRegionClick}
+            onDCClick={handleDCClick}
+            selectedId={selectedRegion?.id}
+            selectedDCId={selectedDC?.id}
+          />
         </div>
 
-        {selectedRegion && (
+        {panelData && (
           <div className="w-80 flex-shrink-0 border-l border-slate-200 overflow-hidden">
-            <AnalysisPanel
-              region={selectedRegion}
-              analysis={analysis}
-              loading={loading}
-              onClose={() => { setSelectedRegion(null); setAnalysis(null) }}
-            />
+            {panelData.type === 'region'
+              ? <AnalysisPanel region={panelData.item} analysis={analysis} loading={loading} onClose={resetPanel} />
+              : <DCAnalysisPanel dc={panelData.item} wri={panelData.wri} estimatedMw={panelData.estimated_mw} analysis={analysis} loading={loading} onClose={resetPanel} />
+            }
           </div>
         )}
       </div>
