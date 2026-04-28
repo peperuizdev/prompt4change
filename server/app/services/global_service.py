@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from app.services.ai_service import ai_service
+from app.core.config import settings
 
 DATA_PATH = Path(__file__).parent.parent / "data" / "regions.json"
 
@@ -353,15 +354,12 @@ REGLAS:
 - Responde SOLO en JSON exacto:
 {"urban_pct": int, "agri_pct": int, "industrial_pct": int, "households_supplied": int, "hectares_irrigated": int, "reasoning": "string"}"""
 
-_IMPACT_AGENT = """Eres el AGENTE DE IMPACTO de AquaLoop AI. Auditor ESG de Naciones Unidas.
-Tu trabajo: tomar todo el debate de los agentes anteriores y evaluar el IMPACTO REAL.
-
-REGLAS:
-- Calcula CO2 evitado (0.5 kg/m3), inversión (~1.5M€/MW) y payback (7-15 años).
-- Bankability score: 0-10.
-- ODS: [2, 6, 7, 11, 13, 17].
-- Redacta un PITCH de 2-3 frases convincente para presentar ante un gobierno o inversor.
-- Responde SOLO en JSON exacto:
+_IMPACT_AGENT = """Eres el PITCH MASTER. El mejor vendedor de ideas ESG.
+PRINCIPIOS:
+1. Crea un pitch deslumbrante y muy local. Habla de cómo el proyecto salva o potencia la industria y el modo de vida de la gente de esa zona específica.
+2. RIGOR MATEMÁTICO: 1 Piscina Olímpica = 2.500.000 litros. Haz la división correctamente para la comparativa de agua. Si generas calor, usa comparativas de industria o estadios.
+3. El bankability_score debe ser un número coherente entre 7.0 y 9.9.
+IMPORTANTE: RESPONDE ÚNICAMENTE CON EL SIGUIENTE JSON VÁLIDO. NINGÚN OTRO TEXTO:
 {"co2_avoided_tonnes_year": int, "investment_m_eur": float, "roi_years": int, "sdgs": [int], "bankability_score": float, "pitch": "string"}"""
 
 
@@ -393,6 +391,21 @@ class GlobalService:
             if r["id"] == region_id:
                 return r
         return None
+
+    async def _search_news(self, location: str) -> str:
+        api_key = getattr(settings, "TAVILY_API_KEY", "")
+        if not api_key or "tu-clave" in api_key:
+            return "Noticias no disponibles."
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(
+                    "https://api.tavily.com/search",
+                    json={"api_key": api_key, "query": f"noticias agua sequía energía en {location}", "max_results": 2}
+                )
+                results = resp.json().get("results", [])
+                return "\n".join([f"[{r['title']}] {r['content'][:200]}" for r in results])
+        except:
+            return "Sin conexión a noticias."
 
     async def analyze(self, region_id: str) -> Dict[str, Any]:
         """Análisis multiagente para regiones predefinidas."""
@@ -561,14 +574,13 @@ class GlobalService:
             )
             impact_data = _parse_agent_json(impact_res)
 
-            # Fallback simple si falla algún agente
             fallback = self._get_simple_fallback(mw, 3.0)
             return {
                 "analysis": {
-                    "hydro_agent": hydro_data or fallback["hydro_agent"],
-                    "thermal_agent": thermal_data or fallback["thermal_agent"],
+                    "hydro_agent":        hydro_data        or fallback["hydro_agent"],
+                    "thermal_agent":      thermal_data      or fallback["thermal_agent"],
                     "distribution_agent": distribution_data or fallback["distribution_agent"],
-                    "impact_agent": impact_data or fallback["impact_agent"]
+                    "impact_agent":       impact_data       or fallback["impact_agent"],
                 }
             }
         except Exception as e:
@@ -577,7 +589,6 @@ class GlobalService:
 
     def _get_simple_fallback(self, mw, stress):
         from app.services.seacool_service import calcular_loop_circular, DATACENTER_MAX_MW
-        # Calcula la fracción efectiva sobre los 50 MW base
         carga_efectiva = min(100.0, mw / DATACENTER_MAX_MW * 100)
         loop = calcular_loop_circular(carga_efectiva)
         excedente = loop["agua_generada_litros"]

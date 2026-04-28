@@ -7,8 +7,9 @@ import time
 import logging
 import json
 from pathlib import Path
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
+from typing import Dict, Any
 import httpx
 
 from app.services.global_service import global_service
@@ -139,14 +140,12 @@ async def _fetch_datacenters():
         else:
             logger.warning("PeeringDB devolvió 0 resultados")
             result = disk or _FALLBACK_DATACENTERS
-            # TTL corto para reintentar pronto
             _dc_cache["data"] = result
             _dc_cache["ts"] = now - _DC_TTL + _DC_RETRY_TTL
 
     except Exception as exc:
         logger.warning("PeeringDB no disponible: %s", exc)
         result = disk or _FALLBACK_DATACENTERS
-        # TTL corto: reintentar en 2 min
         _dc_cache["data"] = result
         _dc_cache["ts"] = now - _DC_TTL + _DC_RETRY_TTL
 
@@ -232,27 +231,27 @@ async def get_datacenters():
     return await _fetch_datacenters()
 
 
-@router.post(
-    "/analyze-dc",
-    summary="Análisis SeaCool para un datacenter real",
-    description="Cruza las coordenadas del DC con WRI Aqueduct y estima calor residual desde net_count.",
-)
-async def analyze_dc(request: AnalyzeDCRequest):
-    result = await global_service.analyze_dc(request.model_dump())
-    return result
+@router.post("/analyze")
+async def analyze_region(body: Dict[str, Any] = Body(...)):
+    region_id = body.get("region_id")
+    if not region_id:
+        raise HTTPException(status_code=400, detail="region_id is required")
+    return await global_service.analyze(region_id)
 
 
-@router.post(
-    "/analyze",
-    summary="Análisis multiagente para una región",
-    description=(
-        "Ejecuta el análisis SeaCool para una región concreta: "
-        "4 agentes (Hídrico, Térmico, Distribuidor, Impacto) evalúan "
-        "el potencial y generan un pitch para gobiernos."
-    ),
-)
-async def analyze_region(request: AnalyzeRequest):
-    result = await global_service.analyze(request.region_id)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
+@router.post("/analyze-dc")
+async def analyze_dc(body: Dict[str, Any] = Body(...)):
+    dc_data = {
+        "id": body.get("id", 999),
+        "name": body.get("name", "Unknown DC"),
+        "city": body.get("city", "Unknown City"),
+        "country": body.get("country", "??"),
+        "lat": body.get("lat") or body.get("latitude"),
+        "lng": body.get("lng") or body.get("longitude"),
+        "net_count": body.get("net_count", 0)
+    }
+
+    if dc_data["lat"] is None or dc_data["lng"] is None:
+        raise HTTPException(status_code=400, detail="Coordinates (lat/lng) are required")
+
+    return await global_service.analyze_dc(dc_data)

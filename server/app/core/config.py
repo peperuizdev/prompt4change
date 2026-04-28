@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     PEERINGDB_API_KEY: str = ""
     GROQ_API_KEY: str = "gsk_PYvqegjbwec6y3JmDsIwWGdyb3FY3PqxsrPmSyCBUSE1uhHq"
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    TAVILY_API_KEY: str = ""
     HF_TOKEN: str = ""
 
     # --- External APIs ---

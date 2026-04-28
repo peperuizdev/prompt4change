@@ -702,7 +702,7 @@ export default function GlobalDashboard() {
 
   return (
     <>
-      <div className="flex" style={{ height: 'calc(100vh - 80px)' }}>
+      <div className="flex" style={{ height: '100%' }}>
         <div className="relative flex-1 min-w-0">
           {error && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
@@ -710,7 +710,7 @@ export default function GlobalDashboard() {
             </div>
           )}
           <SeaCoolMap
-            height="calc(100vh - 56px)"
+            height="100%"
             onRegionClick={handleRegionClick}
             onDCClick={handleDCClick}
             selectedId={selectedRegion?.id}
