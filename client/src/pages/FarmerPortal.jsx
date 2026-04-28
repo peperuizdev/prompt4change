@@ -129,18 +129,27 @@ export default function FarmerPortal() {
                 </svg>Simulando...</>
               ) : (<><span className="material-symbols-outlined text-sm">play_circle</span>Ejecutar simulación</>)}
             </button>
+            {loading && (
+              <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-sm font-medium text-[#003366]">
+                Agentes procesando...
+              </div>
+            )}
             {error && <div className="bg-red-50 border border-red-200 text-red-800 rounded-lg p-3 text-sm">{error}</div>}
           </div>
         </div>
 
         {/* Right side: flow + results */}
         <div className="lg:col-span-2 space-y-lg">
-          <AgentFlowDiagram running={agentRunning} result={result} />
+          <div className="overflow-x-auto pb-1">
+            <div className="min-w-[640px] md:min-w-0">
+              <AgentFlowDiagram running={agentRunning} result={result} />
+            </div>
+          </div>
 
           {result && (
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-lg">
               <h4 className="font-headline-md text-[#001e40] mb-lg text-sm font-bold">Resultados</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-lg mb-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-lg mb-lg">
                 {[
                   { icon: 'water_drop', color: 'text-secondary', val: result.metricas_tecnicas.agua_generada_litros.toLocaleString(), label: 'Litros/día' },
                   { icon: 'home',       color: 'text-primary-container', val: hogares?.toLocaleString(), label: 'Hogares' },

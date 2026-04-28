@@ -90,9 +90,9 @@ export default function AIAgentMonitor() {
   const alertState = getAlertState(temp)
 
   const alertConfig = {
-    standby:  { border: 'border-slate-100', statusBg: 'bg-slate-100', statusText: 'text-slate-500', label: 'STANDBY', iconBg: 'bg-slate-50', iconColor: 'text-slate-400', overlay: false },
-    warning:  { border: 'border-orange-300', statusBg: 'bg-tertiary-fixed', statusText: 'text-on-tertiary-container', label: 'WARNING', iconBg: 'bg-orange-50', iconColor: 'text-orange-500', overlay: false },
-    critical: { border: 'border-2 border-error', statusBg: 'bg-error-container', statusText: 'text-on-error-container', label: 'CRITICAL', iconBg: 'bg-error-container', iconColor: 'text-error', overlay: true },
+    standby:  { statusBg: 'bg-slate-100',          statusText: 'text-slate-500',                label: 'STANDBY',  iconBg: 'bg-slate-50',       iconColor: 'text-slate-400',   overlay: false },
+    warning:  { statusBg: 'bg-tertiary-fixed',      statusText: 'text-on-tertiary-container',    label: 'WARNING',  iconBg: 'bg-orange-50',      iconColor: 'text-orange-500',  overlay: false },
+    critical: { statusBg: 'bg-error-container',     statusText: 'text-on-error-container',       label: 'CRITICAL', iconBg: 'bg-error-container', iconColor: 'text-error',       overlay: true  },
   }
   const ac = alertConfig[alertState]
 
@@ -129,7 +129,7 @@ export default function AIAgentMonitor() {
             <p className="text-xs text-on-surface-variant mb-4">{agent.description}</p>
             <div className="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
               {agent.logs.map((log, i) => (
-                <p key={i} className={`border-l-2 ${agent.logColor} pl-2 ${i === agent.logs.length - 1 ? 'opacity-50' : ''}`}>
+                <p key={i} className={`border-l-2 border-slate-200 pl-2 ${i === agent.logs.length - 1 ? 'opacity-50' : ''}`}>
                   {log}
                 </p>
               ))}
@@ -138,7 +138,7 @@ export default function AIAgentMonitor() {
         ))}
 
         {/* Alert Agent — dynamic */}
-        <div className={`bg-white p-6 rounded-xl border-2 ${ac.border} shadow-sm transition-all duration-500 flex flex-col h-full relative overflow-hidden`}>
+        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all duration-500 flex flex-col h-full relative overflow-hidden">
           <div className="flex justify-between items-start mb-4">
             <div className={`w-10 h-10 rounded-lg ${ac.iconBg} flex items-center justify-center ${ac.iconColor}`}>
               <span className="material-symbols-outlined">warning</span>
@@ -148,9 +148,9 @@ export default function AIAgentMonitor() {
           <h3 className="font-headline-md text-body-md font-bold mb-1">Alerta</h3>
           <p className="text-xs text-on-surface-variant mb-4">Gestión de emergencias</p>
           <div className="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
-            <p className="border-l-2 border-slate-300 pl-2">{now()} - {alertState === 'standby' ? 'Sistema nominal' : alertState === 'warning' ? 'Temperatura elevada' : 'ALERTA CRÍTICA'}</p>
-            <p className="border-l-2 border-slate-300 pl-2">{now()} - Monitor activo</p>
-            <p className="border-l-2 border-slate-300 pl-2 opacity-50">{now()} - {alertState === 'standby' ? 'Sin incidencias' : 'Evaluando respuesta'}</p>
+            <p className="border-l-2 border-slate-200 pl-2">{now()} - {alertState === 'standby' ? 'Sistema nominal' : alertState === 'warning' ? 'Temperatura elevada' : 'ALERTA CRÍTICA'}</p>
+            <p className="border-l-2 border-slate-200 pl-2">{now()} - Monitor activo</p>
+            <p className="border-l-2 border-slate-200 pl-2 opacity-50">{now()} - {alertState === 'standby' ? 'Sin incidencias' : 'Evaluando respuesta'}</p>
           </div>
           {ac.overlay && (
             <div className="absolute inset-0 bg-error/5 pointer-events-none" />

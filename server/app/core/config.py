@@ -23,10 +23,15 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o"
     GOOGLE_API_KEY: str = ""
     GOOGLE_MODEL: str = "gemini-2.0-flash"
+    PEERINGDB_API_KEY: str = ""
     GROQ_API_KEY: str = "gsk_PYvqegjbwec6y3JmDsIwWGdyb3FY3PqxsrPmSyCBUSE1uhHq"
     GROQ_MODEL: str = "llama-3.3-70b-versatile"
     TAVILY_API_KEY: str = ""
     HF_TOKEN: str = ""
+
+    # --- External APIs ---
+    PEERINGDB_API_KEY: str = ""
+    ELECTRICITY_MAPS_API_KEY: str = ""   # https://electricitymaps.com/ (free tier)
 
     # --- Supabase ---
     SUPABASE_URL: str = ""
