@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { jsPDF } from 'jspdf'
 import MetricCard from '../components/ui/MetricCard'
 import { getRegions } from '../api/client'
@@ -82,10 +83,10 @@ function OpportunityCard({ region }) {
   const stressBg    = stress >= 4.5 ? 'bg-red-100 text-red-700' : stress >= 4.0 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700'
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3">
+    <div className="flex flex-col gap-3 p-5 transition-shadow bg-white border shadow-sm rounded-xl border-slate-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div>
-          {region.flag && <div className="text-xl mb-1">{region.flag}</div>}
+          {region.flag && <div className="mb-1 text-xl">{region.flag}</div>}
           <h3 className="font-bold text-[#001e40] text-sm leading-tight">{region.name}</h3>
           <p className="text-xs text-slate-500 mt-0.5">{region.country}{region.region ? ` · ${region.region}` : ''}</p>
         </div>
@@ -143,7 +144,7 @@ function ReportCard({ report }) {
   }[viability?.color] ?? ''
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3">
+    <div className="flex flex-col gap-3 p-5 transition-shadow bg-white border shadow-sm rounded-xl border-slate-200 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-start gap-3">
           <div className={`p-2 rounded-lg shrink-0 ${isRegion ? 'bg-blue-50' : 'bg-cyan-50'}`}>
@@ -152,7 +153,7 @@ function ReportCard({ report }) {
             </span>
           </div>
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <h3 className="font-bold text-[#001e40] text-sm leading-tight">{report.name}</h3>
               <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${isRegion ? 'bg-blue-100 text-blue-700' : 'bg-cyan-100 text-cyan-700'}`}>
                 {isRegion ? 'REGIÓN' : 'DATACENTER'}
@@ -177,26 +178,26 @@ function ReportCard({ report }) {
       )}
 
       {pitch && (
-        <div className="bg-slate-50 rounded-lg px-3 py-2">
-          <p className="text-xs text-slate-600 italic leading-snug">"{pitch}"</p>
+        <div className="px-3 py-2 rounded-lg bg-slate-50">
+          <p className="text-xs italic leading-snug text-slate-600">"{pitch}"</p>
         </div>
       )}
 
       <div className="grid grid-cols-3 gap-2">
         {waterLiters != null && (
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-slate-50">
             <div className="text-sm font-black text-[#003366]">{(waterLiters / 1_000_000).toFixed(2)}M</div>
             <div className="text-[9px] text-slate-400">L/día</div>
           </div>
         )}
         {households != null && (
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-slate-50">
             <div className="text-sm font-black text-[#006d37]">{fmt(Number(households))}</div>
             <div className="text-[9px] text-slate-400">hogares</div>
           </div>
         )}
         {co2 != null && (
-          <div className="bg-slate-50 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-slate-50">
             <div className="text-sm font-black text-orange-500">{fmt(Number(co2))}</div>
             <div className="text-[9px] text-slate-400">t CO₂/año</div>
           </div>
@@ -220,11 +221,11 @@ function ReportCard({ report }) {
 function EmptyAnalyses() {
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+      <div className="flex items-center justify-center w-16 h-16 mb-4 bg-slate-100 rounded-2xl">
         <span className="material-symbols-outlined text-[32px] text-slate-400">analytics</span>
       </div>
       <h3 className="font-bold text-[#001e40] text-base mb-2">Aún no hay análisis</h3>
-      <p className="text-sm text-slate-500 max-w-xs">
+      <p className="max-w-xs text-sm text-slate-500">
         Ve al mapa, pulsa sobre una región o datacenter y lanza un análisis IA. Los resultados aparecerán aquí automáticamente.
       </p>
     </div>
@@ -348,7 +349,7 @@ export default function ESGReports() {
   const dateLabel = new Intl.DateTimeFormat('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date())
 
   return (
-    <div className="min-h-screen max-w-container-max mx-auto px-4 sm:px-6 lg:px-10 py-6 sm:py-8">
+    <div className="min-h-screen px-4 py-6 mx-auto max-w-container-max sm:px-6 lg:px-10 sm:py-8">
       <div className="flex flex-col gap-6">
 
         {/* ── Header ── */}
@@ -363,7 +364,7 @@ export default function ESGReports() {
             <h1 className="text-[clamp(2rem,4vw,3.25rem)] leading-[1.05] font-black tracking-tight text-[#001e40]">
               Oportunidades SeaCool &amp; análisis realizados.
             </h1>
-            <p className="text-sm sm:text-base text-on-surface-variant max-w-2xl">
+            <p className="max-w-2xl text-sm sm:text-base text-on-surface-variant">
               Explora las zonas con mayor potencial para implantar SeaCool y consulta los análisis de IA completados durante la sesión.
             </p>
           </div>
@@ -411,14 +412,14 @@ export default function ESGReports() {
                 {opportunities.map(r => <OpportunityCard key={r.id} region={r} />)}
               </div>
             ) : (
-              <div className="flex items-center justify-center py-12 text-slate-400 text-sm">
-                <span className="material-symbols-outlined mr-2">hourglass_empty</span>
+              <div className="flex items-center justify-center py-12 text-sm text-slate-400">
+                <span className="mr-2 material-symbols-outlined">hourglass_empty</span>
                 Cargando regiones...
               </div>
             )}
 
             {/* Resumen ejecutivo */}
-            <section className="grid gap-6 lg:grid-cols-12 mt-2">
+            <section className="grid gap-6 mt-2 lg:grid-cols-12">
               <div className="lg:col-span-8 rounded-2xl border border-slate-200 bg-[#001e40] p-6 sm:p-8 text-white shadow-[0_12px_36px_-24px_rgba(0,0,0,0.5)] overflow-hidden relative">
                 <div className="absolute inset-0 opacity-[0.04] bg-[linear-gradient(90deg,rgba(255,255,255,0.8)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] bg-[size:36px_36px]" />
                 <div className="relative z-10 flex flex-col gap-6">
@@ -433,7 +434,7 @@ export default function ESGReports() {
                         <span className="text-[clamp(3rem,8vw,5rem)] font-black leading-none text-white">
                           {metrics.dailyLitersM.toLocaleString('es-ES')}M
                         </span>
-                        <span className="text-lg sm:text-2xl font-semibold text-blue-200">litros</span>
+                        <span className="text-lg font-semibold text-blue-200 sm:text-2xl">litros</span>
                       </div>
                       <p className="max-w-2xl text-sm sm:text-base text-blue-100/80">
                         Si el potencial detectado en regiones costeras se activara con SeaCool, el sistema podría convertir calor residual en un flujo continuo de agua útil para consumo y agricultura.
@@ -446,7 +447,7 @@ export default function ESGReports() {
                         { label: 'Hogares',     value: fmt(metrics.households),  unit: ''   },
                         { label: 'Inversión',   value: `~${metrics.investmentBn}B€`, unit: '' },
                       ].map(({ label, value, unit }) => (
-                        <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <div key={label} className="p-4 border rounded-xl border-white/10 bg-white/5">
                           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">{label}</div>
                           <div className="mt-2 text-[clamp(1.35rem,3vw,1.8rem)] font-black leading-none text-white break-all">{value}</div>
                           {unit && <div className="mt-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">{unit}</div>}
@@ -466,17 +467,17 @@ export default function ESGReports() {
                   <span className="rounded-full bg-secondary-container px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-on-secondary-container">Stable</span>
                 </div>
                 <div className="mt-5 space-y-4">
-                  <div className="rounded-xl bg-slate-50 p-4">
+                  <div className="p-4 rounded-xl bg-slate-50">
                     <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Población cubierta</p>
                     <div className="mt-2 text-2xl font-black text-[#003366]">{metrics.populationM}M</div>
                     <p className="mt-1 text-sm text-on-surface-variant">personas en regiones monitorizadas</p>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="p-4 border rounded-xl border-slate-200">
                       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Zonas críticas</p>
                       <p className="mt-2 text-2xl font-black text-[#ba1a1a]">{metrics.criticalZones}</p>
                     </div>
-                    <div className="rounded-xl border border-slate-200 p-4">
+                    <div className="p-4 border rounded-xl border-slate-200">
                       <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Potencial DC</p>
                       <p className="mt-2 text-2xl font-black text-[#003366]">{metrics.dcPotentialMW.toLocaleString('es-ES')}</p>
                     </div>
@@ -513,7 +514,7 @@ export default function ESGReports() {
                 {ODS.map(({ num, color, icon, title, desc }) => (
                   <article key={num} className="rounded-xl border border-slate-200 p-4 transition-transform hover:-translate-y-0.5">
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg" style={{ backgroundColor: `${color}15` }}>
                         <span className="material-symbols-outlined text-[20px]" style={{ color }}>{icon}</span>
                       </div>
                       <span className="text-xs font-black" style={{ color }}>ODS {num}</span>
@@ -558,7 +559,7 @@ export default function ESGReports() {
                 {ODS.map(({ num, color, icon, title, desc }) => (
                   <article key={num} className="rounded-xl border border-slate-200 p-4 transition-transform hover:-translate-y-0.5">
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-lg" style={{ backgroundColor: `${color}15` }}>
                         <span className="material-symbols-outlined text-[20px]" style={{ color }}>{icon}</span>
                       </div>
                       <span className="text-xs font-black" style={{ color }}>ODS {num}</span>
@@ -570,7 +571,7 @@ export default function ESGReports() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5 sm:p-6 flex gap-3 items-start">
+            <section className="flex items-start gap-3 p-5 border rounded-2xl border-slate-200 bg-slate-50 sm:p-6">
               <span className="material-symbols-outlined text-slate-400 text-[18px] shrink-0 mt-0.5">info</span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">Metodología y fuentes</p>

@@ -34,7 +34,7 @@ export default function AgentFlowDiagram({ running = false, result = null }) {
   }, [running])
 
   return (
-    <div className="bg-[#001e40] rounded-2xl p-6 overflow-hidden relative">
+    <div className="bg-[#001e40] rounded-2xl p-4 sm:p-6 overflow-hidden relative">
       <div className="absolute inset-0 opacity-5"
         style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }}
       />
@@ -49,7 +49,7 @@ export default function AgentFlowDiagram({ running = false, result = null }) {
           )}
         </div>
 
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-stretch justify-between gap-4 overflow-hidden">
           <NodeBox icon="person" label="Usuario" sublabel="SeaCool UI" color="#a7c8ff" active={step >= 0} pulse={step === 0 || step === 7} />
           <FlowArrow active={step >= 0} label={step >= 0 ? MESSAGES[0].text : ''} />
           <div className="flex flex-col items-center gap-1">
@@ -116,10 +116,10 @@ function NodeBox({ icon, label, sublabel, color, active, pulse, small = false })
 
 function FlowArrow({ active, label }) {
   return (
-    <div className="flex flex-col items-center gap-1 min-w-[60px]">
+    <div className="flex min-w-[52px] flex-col items-center gap-1 md:min-w-[60px]">
       <div className={`h-0.5 w-full transition-all duration-500 ${active ? 'bg-[#a7c8ff]' : 'bg-white/10'}`}
         style={{ background: active ? 'linear-gradient(90deg, #a7c8ff, #003366)' : undefined }} />
-      {label && <span className="text-[8px] text-[#a7c8ff]/70 text-center max-w-[80px] leading-tight">{label}</span>}
+      {label && <span className="text-[8px] text-[#a7c8ff]/70 text-center max-w-[72px] leading-tight md:max-w-[80px]">{label}</span>}
     </div>
   )
 }

@@ -20,12 +20,12 @@ function getFlagEmoji(country) {
 function AgentBlock({ icon, title, children, delay = 0 }) {
   return (
     <div
-      className="rounded-xl border border-slate-200 p-4 bg-white"
+      className="p-4 bg-white border rounded-xl border-slate-200"
       style={{ animation: `fadeIn 0.4s ease ${delay}ms both` }}
     >
       <div className="flex items-center gap-2 mb-2">
         <span className="material-symbols-outlined text-[18px] text-slate-500">{icon}</span>
-        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">{title}</span>
+        <span className="text-xs font-bold tracking-wide uppercase text-slate-500">{title}</span>
       </div>
       {children}
     </div>
@@ -129,37 +129,37 @@ function RegionPreviewPanel({ region, onAnalyze, onClose }) {
   const temp    = useAnnualTemp(region.lat, region.lng)
   const carbon  = getCarbonIntensity(region.country)
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
       <div className="bg-[#003366] text-white p-5 flex-shrink-0">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-2xl mb-0.5">{region.flag}</div>
             <h2 className="text-lg font-bold leading-tight">{region.name}</h2>
-            <p className="text-blue-200 text-sm">{region.country} · {region.region}</p>
+            <p className="text-sm text-blue-200">{region.country} · {region.region}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-white text-lg">close</span>
+            <span className="text-lg text-white material-symbols-outlined">close</span>
           </button>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap items-center gap-3">
           <span className={`text-xs font-bold px-2 py-1 rounded-full ${region.water_stress >= 4.5 ? 'bg-red-500' : 'bg-orange-500'} text-white`}>
             Estrés {region.stress_label} · {region.water_stress}/5
           </span>
-          <span className="text-blue-200 text-xs">{region.population_m}M hab.</span>
-          <span className="text-blue-200 text-xs">{region.annual_rainfall_mm}mm/año</span>
+          <span className="text-xs text-blue-200">{region.population_m}M hab.</span>
+          <span className="text-xs text-blue-200">{region.annual_rainfall_mm}mm/año</span>
         </div>
       </div>
 
-      <div className="px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0">
-        <p className="text-xs text-slate-600 italic">"{region.key_challenge}"</p>
+      <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-slate-100">
+        <p className="text-xs italic text-slate-600">"{region.key_challenge}"</p>
       </div>
 
-      <div className="p-4 grid grid-cols-2 gap-3">
-        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
+      <div className="grid grid-cols-2 gap-3 p-4">
+        <div className="p-3 text-center bg-white border rounded-xl border-slate-200">
           <div className="text-xl font-black text-[#003366]">{region.dc_potential_mw} MW</div>
           <div className="text-[10px] text-slate-500">potencial DC</div>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-3 text-center">
+        <div className="p-3 text-center bg-white border rounded-xl border-slate-200">
           <div className="text-xl font-black text-[#003366]">{region.annual_rainfall_mm}</div>
           <div className="text-[10px] text-slate-500">mm/año lluvia</div>
         </div>
@@ -198,7 +198,7 @@ function RegionPreviewPanel({ region, onAnalyze, onClose }) {
         </div>
       </div>
 
-      <div className="px-4 pb-6 pt-2 mt-auto">
+      <div className="px-4 pt-2 pb-6 mt-auto">
         <button
           onClick={onAnalyze}
           className="w-full bg-[#003366] hover:bg-[#00254d] text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
@@ -219,29 +219,29 @@ function DCPreviewPanel({ dc, onAnalyze, onClose }) {
   const carbon = getCarbonIntensity(dc.country)
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
       <div className="bg-[#0e7490] text-white p-5 flex-shrink-0">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-xs font-bold text-cyan-200 uppercase tracking-widest mb-1">Datacenter · PeeringDB</div>
+            <div className="mb-1 text-xs font-bold tracking-widest uppercase text-cyan-200">Datacenter · PeeringDB</div>
             {dcFlag && <div className="text-2xl mb-0.5">{dcFlag}</div>}
             <h2 className="text-lg font-bold leading-tight">{dc.name}</h2>
-            <p className="text-cyan-200 text-sm">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
+            <p className="text-sm text-cyan-200">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-white text-lg">close</span>
+            <span className="text-lg text-white material-symbols-outlined">close</span>
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2 mt-3">
-          <div className="bg-white/10 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-white/10">
             <div className="text-lg font-black">{dc.net_count}</div>
             <div className="text-[10px] text-cyan-200">redes IX</div>
           </div>
-          <div className="bg-white/10 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-white/10">
             <div className="text-lg font-black">~{estimatedMw} MW</div>
             <div className="text-[10px] text-cyan-200">potencia est.</div>
           </div>
-          <div className="bg-white/10 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-white/10">
             <div className="text-lg font-black">{heatMw} MW</div>
             <div className="text-[10px] text-cyan-200">calor residual</div>
           </div>
@@ -281,7 +281,7 @@ function DCPreviewPanel({ dc, onAnalyze, onClose }) {
         </div>
       </div>
 
-      <div className="px-4 pb-6 pt-3 mt-auto">
+      <div className="px-4 pt-3 pb-6 mt-auto">
         <button
           onClick={onAnalyze}
           className="w-full bg-[#0e7490] hover:bg-[#0c6174] text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors"
@@ -301,23 +301,23 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
   const urgencyStyle = URGENCY_COLOR[analysis?.hydro_agent?.urgency] ?? URGENCY_COLOR.high
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
       <div className="bg-[#003366] text-white p-5 flex-shrink-0">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-2xl mb-0.5">{region.flag}</div>
             <h2 className="text-lg font-bold leading-tight">{region.name}</h2>
-            <p className="text-blue-200 text-sm">{region.country} · {region.region}</p>
+            <p className="text-sm text-blue-200">{region.country} · {region.region}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-white text-lg">close</span>
+            <span className="text-lg text-white material-symbols-outlined">close</span>
           </button>
         </div>
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap items-center gap-3">
           <span className={`text-xs font-bold px-2 py-1 rounded-full ${region.water_stress >= 4.5 ? 'bg-red-500' : 'bg-orange-500'} text-white`}>
             Estrés {region.stress_label} · {region.water_stress}/5
           </span>
-          <span className="text-blue-200 text-xs">{region.population_m}M hab.</span>
+          <span className="text-xs text-blue-200">{region.population_m}M hab.</span>
         </div>
       </div>
 
@@ -328,39 +328,39 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
       {!loading && analysis && (
         <div className="flex-1 p-4 space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white rounded-xl border p-3 text-center col-span-2">
+            <div className="col-span-2 p-3 text-center bg-white border rounded-xl">
               <div className="text-2xl font-black text-[#003366]">
                 {(analysis.thermal_agent.daily_water_liters / 1_000_000).toFixed(2)}M
               </div>
               <div className="text-xs text-slate-500">litros/día producibles</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-secondary">
                 {Number(analysis.distribution_agent.households_supplied).toLocaleString('es-ES')}
               </div>
               <div className="text-[10px] text-slate-500">hogares abastecidos</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-secondary">
                 {Number(analysis.distribution_agent.hectares_irrigated).toLocaleString('es-ES')}
               </div>
               <div className="text-[10px] text-slate-500">hectáreas regadas</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-orange-500">
                 {Number(analysis.impact_agent.co2_avoided_tonnes_year).toLocaleString('es-ES')}
               </div>
               <div className="text-[10px] text-slate-500">t CO₂ evitadas/año</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-purple-600">{analysis.impact_agent.roi_years} años</div>
               <div className="text-[10px] text-slate-500">payback estimado</div>
             </div>
           </div>
 
           <AgentBlock icon="water_drop" title="Agente Hídrico" delay={0}>
-            <p className="text-xs text-slate-700 mb-2">{analysis.hydro_agent.assessment}</p>
-            <div className="flex gap-2 flex-wrap">
+            <p className="mb-2 text-xs text-slate-700">{analysis.hydro_agent.assessment}</p>
+            <div className="flex flex-wrap gap-2">
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${urgencyStyle.badge}`}>
                 {String(analysis.hydro_agent.urgency ?? '').toUpperCase()}
               </span>
@@ -371,7 +371,7 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
           </AgentBlock>
 
           <AgentBlock icon="thermostat" title="Agente Térmico" delay={150}>
-            <p className="text-xs text-slate-700 mb-2">{analysis.thermal_agent.reasoning}</p>
+            <p className="mb-2 text-xs text-slate-700">{analysis.thermal_agent.reasoning}</p>
             <div className="flex gap-4">
               <div className="text-center">
                 <div className="text-base font-bold text-orange-500">{analysis.thermal_agent.dc_heat_mw} MW</div>
@@ -387,7 +387,7 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
           </AgentBlock>
 
           <AgentBlock icon="account_tree" title="Agente Distribuidor" delay={300}>
-            <p className="text-xs text-slate-700 mb-3">{analysis.distribution_agent.reasoning}</p>
+            <p className="mb-3 text-xs text-slate-700">{analysis.distribution_agent.reasoning}</p>
             <div className="space-y-1.5">
               {[
                 { label: 'Urbano',     pct: analysis.distribution_agent.urban_pct,      color: 'bg-blue-500'   },
@@ -407,10 +407,10 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
           </AgentBlock>
 
           <AgentBlock icon="trending_up" title="Agente Impacto" delay={450}>
-            <div className="bg-slate-50 rounded-lg p-3 mb-3">
-              <p className="text-xs text-slate-700 italic">"{analysis.impact_agent.pitch}"</p>
+            <div className="p-3 mb-3 rounded-lg bg-slate-50">
+              <p className="text-xs italic text-slate-700">"{analysis.impact_agent.pitch}"</p>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center mb-3">
+            <div className="grid grid-cols-3 gap-2 mb-3 text-center">
               <div>
                 <div className="text-sm font-bold text-purple-600">{analysis.impact_agent.investment_m_eur}M€</div>
                 <div className="text-[9px] text-slate-400">inversión</div>
@@ -432,6 +432,16 @@ function AnalysisPanel({ region, analysis, viability, loading, onClose }) {
               ))}
             </div>
           </AgentBlock>
+
+          <button
+            onClick={() => onViewReport(region.id)}
+            className="mt-4 w-full py-3 px-4 rounded-lg bg-[#003366] text-white font-bold text-sm transition-colors hover:bg-[#001e40] active:scale-95"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined">assessment</span>
+              Ver en Impact Report
+            </span>
+          </button>
         </div>
       )}
     </div>
@@ -445,25 +455,25 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
   const displayMw = Number.isFinite(estimatedMw) ? estimatedMw : Math.max(5, Math.round((dc?.net_count ?? 0) ** 0.65))
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
+    <div className="flex flex-col w-full h-full overflow-y-auto bg-slate-50">
       <div className="bg-[#0e7490] text-white p-5 flex-shrink-0">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-xs font-bold text-cyan-200 uppercase tracking-widest mb-1">Datacenter · PeeringDB</div>
+            <div className="mb-1 text-xs font-bold tracking-widest uppercase text-cyan-200">Datacenter · PeeringDB</div>
             {dcFlag && <div className="text-2xl mb-0.5">{dcFlag}</div>}
             <h2 className="text-lg font-bold leading-tight">{dc.name}</h2>
-            <p className="text-cyan-200 text-sm">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
+            <p className="text-sm text-cyan-200">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
-            <span className="material-symbols-outlined text-white text-lg">close</span>
+            <span className="text-lg text-white material-symbols-outlined">close</span>
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
-          <div className="bg-white/10 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-white/10">
             <div className="text-lg font-black">{displayMw} MW</div>
             <div className="text-[10px] text-cyan-200">calor estimado</div>
           </div>
-          <div className="bg-white/10 rounded-lg p-2 text-center">
+          <div className="p-2 text-center rounded-lg bg-white/10">
             <div className="text-lg font-black">{dc.net_count}</div>
             <div className="text-[10px] text-cyan-200">redes conectadas</div>
           </div>
@@ -471,7 +481,7 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
       </div>
 
       {wri && (
-        <div className="px-4 py-3 bg-white border-b border-slate-100 flex-shrink-0">
+        <div className="flex-shrink-0 px-4 py-3 bg-white border-b border-slate-100">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Estrés hídrico · WRI Aqueduct 4.0</p>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: stressColor }} />
@@ -490,33 +500,33 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
       {!loading && analysis && (
         <div className="flex-1 p-4 space-y-3">
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white rounded-xl border p-3 text-center col-span-2">
+            <div className="col-span-2 p-3 text-center bg-white border rounded-xl">
               <div className="text-2xl font-black text-[#0e7490]">
                 {((analysis.thermal_agent?.daily_water_liters ?? 0) / 1_000_000).toFixed(2)}M L/día
               </div>
               <div className="text-xs text-slate-500">agua/calor para la comunidad</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-secondary">
                 {Number(analysis.distribution_agent?.households_supplied ?? 0).toLocaleString('es-ES')}
               </div>
               <div className="text-[10px] text-slate-500">hogares/día</div>
             </div>
-            <div className="bg-white rounded-xl border p-3 text-center">
+            <div className="p-3 text-center bg-white border rounded-xl">
               <div className="text-lg font-black text-purple-600">{analysis.impact_agent?.roi_years}a</div>
               <div className="text-[10px] text-slate-500">payback</div>
             </div>
           </div>
 
           <AgentBlock icon="water_drop" title="Agente Hídrico" delay={0}>
-            <p className="text-xs text-slate-700 mb-2">{analysis.hydro_agent?.assessment}</p>
+            <p className="mb-2 text-xs text-slate-700">{analysis.hydro_agent?.assessment}</p>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${urgencyStyle.badge}`}>
               {String(analysis.hydro_agent?.urgency ?? '').toUpperCase()}
             </span>
           </AgentBlock>
 
           <AgentBlock icon="thermostat" title="Agente Térmico" delay={150}>
-            <p className="text-xs text-slate-700 mb-2">{analysis.thermal_agent?.reasoning}</p>
+            <p className="mb-2 text-xs text-slate-700">{analysis.thermal_agent?.reasoning}</p>
             <div className="flex gap-4">
               <div className="text-center">
                 <div className="text-base font-bold text-cyan-600">{analysis.thermal_agent?.dc_heat_mw} MW</div>
@@ -532,10 +542,10 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
           </AgentBlock>
 
           <AgentBlock icon="trending_up" title="Agente Impacto" delay={300}>
-            <div className="bg-slate-50 rounded-lg p-3 mb-3">
-              <p className="text-xs text-slate-700 italic">"{analysis.impact_agent?.pitch}"</p>
+            <div className="p-3 mb-3 rounded-lg bg-slate-50">
+              <p className="text-xs italic text-slate-700">"{analysis.impact_agent?.pitch}"</p>
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center mb-2">
+            <div className="grid grid-cols-3 gap-2 mb-2 text-center">
               <div>
                 <div className="text-sm font-bold text-purple-600">{analysis.impact_agent?.investment_m_eur}M€</div>
                 <div className="text-[9px] text-slate-400">inversión</div>
@@ -561,6 +571,16 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
           <div className="text-[9px] text-slate-400 pt-1">
             MW estimado: net_count^0.65 · WRI: CARTO SQL API tiempo real · IA: Groq llama-3.3-70b
           </div>
+
+          <button
+            onClick={() => onViewReport(`dc_${dc.name}`)}
+            className="mt-4 w-full py-3 px-4 rounded-lg bg-[#0e7490] text-white font-bold text-sm transition-colors hover:bg-[#0d5c70] active:scale-95"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined">assessment</span>
+              Ver en Impact Report
+            </span>
+          </button>
         </div>
       )}
     </div>
@@ -569,14 +589,14 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, viability, analysis, loading, o
 
 function LoadingSpinner({ color, msg }) {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 py-12">
+    <div className="flex flex-col items-center justify-center flex-1 gap-4 py-12">
       <div className="relative w-14 h-14">
         <div className={`absolute inset-0 rounded-full border-4 border-slate-100`} />
         <div className={`absolute inset-0 rounded-full border-4 border-t-${color} animate-spin`} />
       </div>
       <div className="text-center">
         <p className={`text-sm font-semibold text-${color}`}>Agentes analizando...</p>
-        <p className="text-xs text-slate-400 mt-1">{msg}</p>
+        <p className="mt-1 text-xs text-slate-400">{msg}</p>
       </div>
     </div>
   )
@@ -683,14 +703,14 @@ export default function GlobalDashboard() {
   return (
     <>
       <div className="flex" style={{ height: 'calc(100vh - 80px)' }}>
-        <div className="flex-1 relative min-w-0">
+        <div className="relative flex-1 min-w-0">
           {error && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
               Error: {error}
             </div>
           )}
           <SeaCoolMap
-            height="100%"
+            height="calc(100vh - 56px)"
             onRegionClick={handleRegionClick}
             onDCClick={handleDCClick}
             selectedId={selectedRegion?.id}

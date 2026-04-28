@@ -151,33 +151,35 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
     <div className="flex flex-col" style={{ height }}>
 
       {/* ── Control bar ── */}
-      <div className="flex items-center gap-3 px-4 h-12 bg-white border-b border-slate-200 shrink-0 flex-wrap">
+      <div className="flex flex-wrap items-center h-12 gap-3 px-4 bg-white border-b border-slate-200 shrink-0">
 
         <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
           <button
             onClick={() => setLayer('water')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-[10px] sm:text-[11px] font-bold transition-all sm:flex-none ${
               layer === 'water' ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            Estrés Hídrico
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span className="hidden sm:inline">Estrés Hídrico</span>
+            <span className="sm:hidden">Agua</span>
           </button>
           <button
             onClick={() => setLayer('dc')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-[10px] sm:text-[11px] font-bold transition-all sm:flex-none ${
               layer === 'dc' ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            Datacenters
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="hidden sm:inline">Datacenters</span>
+            <span className="sm:hidden">DC</span>
           </button>
         </div>
 
-        <div className="w-px h-5 bg-slate-200 shrink-0" />
+        <div className="hidden w-px h-5 bg-slate-200 shrink-0 sm:block" />
 
         {layer === 'water' && (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {[
               { key: 'all',     label: 'Todas',   dot: null      },
               { key: 'extreme', label: 'Extremo', dot: '#ef4444' },
@@ -193,14 +195,14 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
                 {f.label}
               </button>
             ))}
-            <span className="text-[11px] text-slate-400 ml-1">{regions.length} regiones · clic para análisis IA</span>
+            <span className="hidden text-[11px] text-slate-400 ml-1 sm:inline">{regions.length} regiones</span>
           </div>
         )}
 
         {layer === 'dc' && (
           dcLoading
             ? <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
-                <svg className="animate-spin h-3 w-3" fill="none" viewBox="0 0 24 24">
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                 </svg>
@@ -220,7 +222,7 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
       </div>
 
       {/* ── Map ── */}
-      <div className="flex-1 relative">
+      <div className="relative flex-1">
         <MapContainer
           center={[20, 15]}
           zoom={2}
@@ -293,7 +295,7 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
                   <span className="text-[11px] font-medium text-slate-600">{v.label}</span>
                 </div>
               ))}
-              <div className="mt-2 pt-2 border-t border-slate-100 space-y-1">
+              <div className="pt-2 mt-2 space-y-1 border-t border-slate-100">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full border-2 border-white bg-[#003366] shrink-0" />
                   <span className="text-[10px] text-slate-500">Región analizable (IA)</span>
@@ -309,13 +311,13 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
                 { label: '< 20 redes',   r: 4  },
               ].map(({ label, r }) => (
                 <div key={label} className="flex items-center gap-2 mb-1.5">
-                  <span className="rounded-full bg-cyan-400 border border-cyan-600 shrink-0"
+                  <span className="border rounded-full bg-cyan-400 border-cyan-600 shrink-0"
                     style={{ width: r, height: r, display: 'inline-block' }} />
                   <span className="text-[11px] font-medium text-slate-600">{label}</span>
                 </div>
               ))}
               {datacenters.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-100">
+                <div className="pt-2 mt-2 border-t border-slate-100">
                   <p className="text-[9px] text-slate-400">{datacenters.length.toLocaleString()} instalaciones</p>
                 </div>
               )}
