@@ -435,7 +435,7 @@ class GlobalService:
             f"Potencial DC: {region['dc_potential_mw']} MW\n\n"
             f"PERFIL GEOGRÁFICO Y VIABILIDAD TECNOLÓGICA:\n{geo}"
         )
-        result = await self._run_agent_chain(context, region['dc_potential_mw'], region['name'], viability=viability)
+        result = await self._run_agent_chain(context, region['dc_potential_mw'], region['name'])
         result['viability'] = viability
         return result
 
@@ -487,7 +487,7 @@ class GlobalService:
                 "confidence_label": conf["label"],
             }
             _wri_dc_cache[dc_id] = {"wri": wri, "ts": time.time()}
-            print(f"📡 WRI [{conf['label']}] {dc['name']}: {bws_score}/5 a {dist_km} km")
+            print(f"[WRI {conf['label']}] {dc['name']}: {bws_score}/5 a {dist_km} km")
 
         zone = _get_zone(dc['country'])
         geo = _geo_profile(dc['country'], dc['city'], wri['bws_score'])
@@ -512,35 +512,35 @@ class GlobalService:
     async def _run_agent_chain(self, ctx: str, dc_mw: float, loc: str) -> Dict[str, Any]:
         try:
             # 1. Agente Hídrico
-            print(f"\n💧 [1/5] Agente Hídrico analizando {loc}...")
+            print(f"\n[1/5] Agente Hidrico analizando {loc}...")
             h_res_raw = await ai_service.chat([{"role": "system", "content": _HYDRO_AGENT}, {"role": "user", "content": ctx}], temperature=0.2)
             h_res = _parse_agent_json(h_res_raw) or {"assessment": "Error de parseo.", "urgency": "medium"}
 
             # 2. Agente Térmico (V1)
-            print(f"🔥 [2/5] Agente Térmico ideando (V1)...")
+            print(f"[2/5] Agente Termico ideando (V1)...")
             t_res_raw = await ai_service.chat([{"role": "system", "content": _THERMAL_AGENT}, {"role": "user", "content": f"{ctx}\nHIDRO: {h_res}"}], temperature=0.8)
             
             # 3. Agente Auditor (El Abogado del Diablo)
-            print(f"⚖️ [3/5] Agente Auditor evaluando propuesta...")
-            auditor_ctx = f"CONTEXTO DE LA ZONA:\n{ctx}\nREPORTE HÍDRICO:\n{h_res}\n\nPROPUESTA DEL AGENTE TÉRMICO:\n{t_res_raw}"
+            print(f"[3/5] Agente Auditor evaluando propuesta...")
+            auditor_ctx = f"CONTEXTO DE LA ZONA:\n{ctx}\nREPORTE HIDRICO:\n{h_res}\n\nPROPUESTA DEL AGENTE TERMICO:\n{t_res_raw}"
             a_res_raw = await ai_service.chat([{"role": "system", "content": _AUDITOR_AGENT}, {"role": "user", "content": auditor_ctx}], temperature=0.1)
             a_res = _parse_agent_json(a_res_raw) or {"approved": True, "critique": "Aprobado por fallback."}
 
             final_thermal_raw = t_res_raw
             if not a_res.get("approved", True):
-                print(f"⚠️ [!] Auditor rechazó la idea. Crítica: {a_res.get('critique')}. Forzando V2...")
-                refine_prompt = f"Tu propuesta V1 fue RECHAZADA por el Auditor.\nPropuesta V1: {t_res_raw}\nCrítica del Auditor: {a_res.get('critique')}\n\nGenera una NUEVA PROPUESTA (V2) superando esta crítica para ser lo más original y local posible. DEBE SER JSON."
+                print(f"[!] Auditor rechazo la idea. Critica: {a_res.get('critique')}. Forzando V2...")
+                refine_prompt = f"Tu propuesta V1 fue RECHAZADA por el Auditor.\nPropuesta V1: {t_res_raw}\nCritica del Auditor: {a_res.get('critique')}\n\nGenera una NUEVA PROPUESTA (V2) superando esta critica para ser lo mas original y local posible. DEBE SER JSON."
                 final_thermal_raw = await ai_service.chat([{"role": "system", "content": _THERMAL_AGENT}, {"role": "user", "content": refine_prompt}], temperature=0.7)
 
             t_res = _parse_agent_json(final_thermal_raw) or {"dc_heat_mw": dc_mw, "daily_water_liters": 0, "reasoning": "Fallback de emergencia."}
 
             # 4. Agente de Distribución
-            print(f"📦 [4/5] Agente Distribución asignando...")
+            print(f"[4/5] Agente Distribucion asignando...")
             d_res_raw = await ai_service.chat([{"role": "system", "content": _DISTRIBUTION_AGENT}, {"role": "user", "content": f"{ctx}\nTERMO: {t_res}"}], temperature=0.4)
             d_res = _parse_agent_json(d_res_raw) or {"urban_pct": 50, "agri_pct": 50, "industrial_pct": 0, "households_supplied": 0, "hectares_irrigated": 0, "reasoning": "Fallback."}
 
             # 5. Agente de Impacto
-            print(f"🚀 [5/5] Agente Impacto creando pitch...")
+            print(f"[5/5] Agente Impacto creando pitch...")
             i_res_raw = await ai_service.chat([{"role": "system", "content": _IMPACT_AGENT}, {"role": "user", "content": f"{ctx}\nTERMO: {t_res}\nDIST: {d_res}"}], temperature=0.7)
             i_res = _parse_agent_json(i_res_raw) or {"co2_avoided_tonnes_year": 0, "investment_m_eur": 0.0, "roi_years": 0, "sdgs": [], "bankability_score": 0.0, "pitch": "Fallback."}
 
