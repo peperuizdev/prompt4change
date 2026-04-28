@@ -1,4 +1,6 @@
-const BASE = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000`
+const isDev = import.meta.env.DEV;
+const defaultBase = isDev ? `http://${window.location.hostname}:8000` : '';
+const BASE = import.meta.env.VITE_API_URL || defaultBase;
 
 export async function apiFetch(path, options = {}) {
   const res = await fetch(`${BASE}${path}`, {
