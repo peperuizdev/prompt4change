@@ -8,6 +8,12 @@ const URGENCY_COLOR = {
   medium:   { badge: 'bg-yellow-100 text-yellow-700' },
 }
 
+function getFlagEmoji(country) {
+  if (!country || country.length !== 2) return null
+  const codePoints = [...country.toUpperCase()].map(char => 127397 + char.charCodeAt())
+  return String.fromCodePoint(...codePoints)
+}
+
 function AgentBlock({ icon, title, color, children, delay = 0 }) {
   return (
     <div
@@ -182,6 +188,9 @@ function AnalysisPanel({ region, analysis, loading, onClose }) {
 function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
   const stressColor = wri?.bws_score >= 4.5 ? '#ef4444' : wri?.bws_score >= 3.5 ? '#f97316' : '#eab308'
   const urgencyStyle = URGENCY_COLOR[analysis?.hydro_agent?.urgency] ?? URGENCY_COLOR.high
+  const dcFlag = getFlagEmoji(dc?.country)
+  const fallbackMw = Math.max(5, Math.round((dc?.net_count ?? 0) ** 0.65))
+  const displayMw = Number.isFinite(estimatedMw) ? estimatedMw : fallbackMw
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-50 overflow-y-auto">
@@ -189,7 +198,8 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="text-xs font-bold text-cyan-200 uppercase tracking-widest mb-1">Datacenter · PeeringDB</div>
-            <h2 className="text-base font-bold leading-tight">{dc.name}</h2>
+            {dcFlag && <div className="text-2xl mb-0.5">{dcFlag}</div>}
+            <h2 className="text-lg font-bold leading-tight">{dc.name}</h2>
             <p className="text-cyan-200 text-sm">{dc.city}{dc.city && dc.country ? ', ' : ''}{dc.country}</p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-white/10 rounded-lg transition-colors">
@@ -198,7 +208,7 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
         </div>
         <div className="grid grid-cols-2 gap-2 mt-3">
           <div className="bg-white/10 rounded-lg p-2 text-center">
-            <div className="text-lg font-black">{estimatedMw ?? '…'} MW</div>
+            <div className="text-lg font-black">{displayMw} MW</div>
             <div className="text-[10px] text-cyan-200">calor estimado</div>
           </div>
           <div className="bg-white/10 rounded-lg p-2 text-center">
@@ -361,7 +371,7 @@ export default function GlobalDashboard() {
 
   return (
     <>
-      <div className="flex" style={{ height: 'calc(100vh - 56px)' }}>
+  <div className="flex" style={{ height: 'calc(100vh - 80px)' }}>
         <div className="flex-1 relative min-w-0">
           {error && (
             <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
@@ -378,7 +388,7 @@ export default function GlobalDashboard() {
         </div>
 
         {panelData && (
-          <div className="w-80 flex-shrink-0 border-l border-slate-200 overflow-hidden">
+          <div className="w-[420px] flex-shrink-0 border-l border-slate-200 overflow-hidden">
             {panelData.type === 'region'
               ? <AnalysisPanel region={panelData.item} analysis={analysis} loading={loading} onClose={resetPanel} />
               : <DCAnalysisPanel dc={panelData.item} wri={panelData.wri} estimatedMw={panelData.estimated_mw} analysis={analysis} loading={loading} onClose={resetPanel} />

@@ -3,6 +3,10 @@ SeaCool Global - Endpoints para análisis mundial de estrés hídrico.
 """
 
 import time
+import logging
+import json
+import os
+from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import httpx
@@ -10,12 +14,15 @@ import httpx
 from app.services.global_service import global_service
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Simple in-memory cache (TTL 1 hour) to avoid hammering PeeringDB
 _dc_cache:  dict = {"data": None, "ts": 0}
 _wri_cache: dict = {"data": None, "ts": 0}
 _DC_TTL  = 3600
 _WRI_TTL = 86400   # WRI data is static — cache 24h
+_PEERINGDB_CACHE_FILE = Path(__file__).resolve().parents[1] / "data" / "peeringdb_cache.json"
+_PEERINGDB_PAGE_SIZE = 1000
 
 _WRI_CARTO = "https://wri-rw.carto.com/api/v2/sql"
 _WRI_SQL = (
@@ -25,67 +32,110 @@ _WRI_SQL = (
     "WHERE bws_cat >= 3 ORDER BY bws_score DESC"
 )
 
+_FALLBACK_DATACENTERS = [
+    {
+        "id": 1,
+        "name": "Madrid Core DC",
+        "city": "Madrid",
+        "country": "ES",
+        "lat": 40.4168,
+        "lng": -3.7038,
+        "net_count": 120,
+    },
+    {
+        "id": 2,
+        "name": "Barcelona Edge Hub",
+        "city": "Barcelona",
+        "country": "ES",
+        "lat": 41.3874,
+        "lng": 2.1686,
+        "net_count": 80,
+    },
+    {
+        "id": 3,
+        "name": "Lisbon Coastal DC",
+        "city": "Lisboa",
+        "country": "PT",
+        "lat": 38.7223,
+        "lng": -9.1393,
+        "net_count": 60,
+    },
+]
+
 
 async def _fetch_datacenters():
     now = time.time()
     if _dc_cache["data"] is not None and now - _dc_cache["ts"] < _DC_TTL:
         return _dc_cache["data"]
 
-    # Fallback datacenters in high-stress water regions (if PeeringDB fails)
-    FALLBACK_DCS = [
-        # España - Región Mediterránea
-        {"id": 1, "name": "Telefónica ES-MAD", "city": "Madrid", "country": "ES", "lat": 40.4168, "lng": -3.7038, "net_count": 150},
-        {"id": 2, "name": "Atrás BCN-2", "city": "Barcelona", "country": "ES", "lat": 41.3851, "lng": 2.1734, "net_count": 180},
-        {"id": 3, "name": "Almería CoastDC", "city": "Almería", "country": "ES", "lat": 36.8399, "lng": -2.3667, "net_count": 45},
-        
-        # Italia - Sicilia
-        {"id": 4, "name": "Palermo DataHub", "city": "Palermo", "country": "IT", "lat": 38.1156, "lng": 13.3644, "net_count": 85},
-        {"id": 5, "name": "Catania TelecomItaly", "city": "Catania", "country": "IT", "lat": 37.4963, "lng": 15.0874, "net_count": 92},
-        
-        # Marruecos
-        {"id": 6, "name": "Casablanca MarocDC", "city": "Casablanca", "country": "MA", "lat": 33.5731, "lng": -7.5898, "net_count": 60},
-        {"id": 7, "name": "Tangier Gateway", "city": "Tánger", "country": "MA", "lat": 35.7595, "lng": -5.8340, "net_count": 55},
-        
-        # Túnez
-        {"id": 8, "name": "Tunis Telecom", "city": "Túnez", "country": "TN", "lat": 36.8065, "lng": 10.1686, "net_count": 50},
-        
-        # Argelia
-        {"id": 9, "name": "Algiers DataCenter", "city": "Argel", "country": "DZ", "lat": 36.7538, "lng": 3.0588, "net_count": 70},
-        
-        # Murcia España
-        {"id": 10, "name": "Murcia Regional", "city": "Murcia", "country": "ES", "lat": 37.9922, "lng": -1.1307, "net_count": 40},
-    ]
-
     try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            resp = await client.get(
-                "https://www.peeringdb.com/api/fac",
-                params={"limit": 5000, "fields": "id,name,city,country,latitude,longitude,net_count"},
-            )
-            resp.raise_for_status()
-            raw = resp.json().get("data", [])
+        api_key = os.getenv("PEERINGDB_API_KEY")
+        headers = {"User-Agent": "prompt4change/1.0"}
+        if api_key:
+            headers["Authorization"] = f"Api-Key {api_key}"
 
-        result = [
-            {
-                "id": f["id"],
-                "name": f["name"],
-                "city": f.get("city", ""),
-                "country": f.get("country", ""),
-                "lat": float(f["latitude"]),
-                "lng": float(f["longitude"]),
-                "net_count": f.get("net_count", 0),
-            }
-            for f in raw
-            if f.get("latitude") and f.get("longitude")
-        ]
-    except Exception as e:
-        # If PeeringDB fails, use fallback datacenters
-        print(f"PeeringDB fetch failed: {e}. Using fallback datacenters.")
-        result = FALLBACK_DCS
+        result = []
+        offset = 0
+        async with httpx.AsyncClient(timeout=20) as client:
+            while True:
+                resp = await client.get(
+                    "https://www.peeringdb.com/api/fac",
+                    params={
+                        "limit": _PEERINGDB_PAGE_SIZE,
+                        "offset": offset,
+                        "fields": "id,name,city,country,latitude,longitude,net_count",
+                    },
+                    headers=headers,
+                )
+                resp.raise_for_status()
+                raw = resp.json().get("data", [])
+                if not raw:
+                    break
+
+                result.extend([
+                    {
+                        "id": f["id"],
+                        "name": f["name"],
+                        "city": f.get("city", ""),
+                        "country": f.get("country", ""),
+                        "lat": float(f["latitude"]),
+                        "lng": float(f["longitude"]),
+                        "net_count": f.get("net_count", 0),
+                    }
+                    for f in raw
+                    if f.get("latitude") and f.get("longitude")
+                ])
+
+                if len(raw) < _PEERINGDB_PAGE_SIZE:
+                    break
+                offset += _PEERINGDB_PAGE_SIZE
+        if result:
+            try:
+                _PEERINGDB_CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+                _PEERINGDB_CACHE_FILE.write_text(json.dumps(result), encoding="utf-8")
+            except Exception as exc:
+                logger.warning("No se pudo guardar cache PeeringDB en disco: %s", exc)
+        else:
+            logger.warning("PeeringDB devolvió 0 datacenters. Usando cache/fallback local.")
+            result = _load_peeringdb_disk_cache() or _dc_cache["data"] or _FALLBACK_DATACENTERS
+    except Exception as exc:
+        logger.warning("Error consultando PeeringDB. Usando cache/fallback local: %s", exc)
+        result = _load_peeringdb_disk_cache() or _dc_cache["data"] or _FALLBACK_DATACENTERS
 
     _dc_cache["data"] = result
     _dc_cache["ts"] = now
     return result
+
+
+def _load_peeringdb_disk_cache():
+    if not _PEERINGDB_CACHE_FILE.exists():
+        return None
+    try:
+        data = json.loads(_PEERINGDB_CACHE_FILE.read_text(encoding="utf-8"))
+        return data if isinstance(data, list) and data else None
+    except Exception as exc:
+        logger.warning("Cache PeeringDB en disco inválida: %s", exc)
+        return None
 
 
 class AnalyzeRequest(BaseModel):

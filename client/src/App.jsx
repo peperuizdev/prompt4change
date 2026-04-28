@@ -8,7 +8,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <TopNavBar />
-      <main className="mt-14">
+  <main className="mt-20">
         <Routes>
           <Route path="/"    element={<GlobalDashboard />} />
           <Route path="/esg" element={<ESGReports />} />
