@@ -1,16 +1,11 @@
 import { NavLink } from 'react-router-dom'
 
 const navItems = [
-<<<<<<< HEAD
   { to: '/',       icon: 'dashboard',   label: 'Global Dashboard',  fill: true },
   { to: '/agents', icon: 'smart_toy',   label: 'AI Agent Monitor',  fill: true },
   { to: '/farmer', icon: 'agriculture', label: 'Farmer Portal',     fill: true },
   { to: '/esg',    icon: 'assessment',  label: 'ESG Reports',       fill: true },
   { to: '/audit',  icon: 'fact_check',  label: 'Solution Audit',    fill: true },
-=======
-  { to: '/',    icon: 'public',     label: 'Mapa Global',    fill: true },
-  { to: '/esg', icon: 'assessment', label: 'Impact Reports', fill: true },
->>>>>>> origin/feature/prototipe
 ]
 
 export default function SideNavBar() {
