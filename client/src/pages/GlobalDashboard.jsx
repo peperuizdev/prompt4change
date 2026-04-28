@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import SeaCoolMap from '../components/ui/SeaCoolMap'
 import { analyzeRegion, analyzeDC } from '../api/client'
 
@@ -29,7 +30,7 @@ function AgentBlock({ icon, title, color, children, delay = 0 }) {
   )
 }
 
-function AnalysisPanel({ region, analysis, loading, onClose }) {
+function AnalysisPanel({ region, analysis, loading, onClose, onViewReport }) {
   if (!region) return null
   const urgencyStyle = URGENCY_COLOR[analysis?.hydro_agent?.urgency] ?? URGENCY_COLOR.high
 
@@ -179,13 +180,23 @@ function AnalysisPanel({ region, analysis, loading, onClose }) {
               ))}
             </div>
           </AgentBlock>
+
+          <button
+            onClick={() => onViewReport(region.id)}
+            className="mt-4 w-full py-3 px-4 rounded-lg bg-[#003366] text-white font-bold text-sm transition-colors hover:bg-[#001e40] active:scale-95"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined">assessment</span>
+              Ver en Impact Report
+            </span>
+          </button>
         </div>
       )}
     </div>
   )
 }
 
-function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
+function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose, onViewReport }) {
   const stressColor = wri?.bws_score >= 4.5 ? '#ef4444' : wri?.bws_score >= 3.5 ? '#f97316' : '#eab308'
   const urgencyStyle = URGENCY_COLOR[analysis?.hydro_agent?.urgency] ?? URGENCY_COLOR.high
   const dcFlag = getFlagEmoji(dc?.country)
@@ -316,6 +327,16 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
           <div className="text-[9px] text-slate-400 pt-1">
             MW estimado por fórmula net_count^0.65 · Estrés hídrico: WRI Aqueduct 4.0 en tiempo real
           </div>
+
+          <button
+            onClick={() => onViewReport(`dc_${dc.name}`)}
+            className="mt-4 w-full py-3 px-4 rounded-lg bg-[#0e7490] text-white font-bold text-sm transition-colors hover:bg-[#0d5c70] active:scale-95"
+          >
+            <span className="flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined">assessment</span>
+              Ver en Impact Report
+            </span>
+          </button>
         </div>
       )}
     </div>
@@ -323,6 +344,7 @@ function DCAnalysisPanel({ dc, wri, estimatedMw, analysis, loading, onClose }) {
 }
 
 export default function GlobalDashboard() {
+  const navigate = useNavigate()
   const [selectedRegion, setSelectedRegion] = useState(null)
   const [selectedDC, setSelectedDC]         = useState(null)
   const [panelData, setPanelData]           = useState(null)  // { type: 'region'|'dc', item, wri?, estimated_mw? }
@@ -336,6 +358,10 @@ export default function GlobalDashboard() {
     setPanelData(null)
     setAnalysis(null)
     setError(null)
+  }
+
+  function handleViewReport(zoneId) {
+    navigate(`/esg?zone=${zoneId}`)
   }
 
   async function handleRegionClick(region) {
@@ -371,15 +397,15 @@ export default function GlobalDashboard() {
 
   return (
     <>
-  <div className="flex" style={{ height: 'calc(100vh - 80px)' }}>
-        <div className="flex-1 relative min-w-0">
+      <div className="flex min-h-[calc(100vh-56px)] flex-col md:flex-row">
+        <div className="relative w-full flex-1">
           {error && (
-            <div className="absolute top-16 left-1/2 -translate-x-1/2 z-[1000] bg-red-50 border border-red-200 text-red-700 text-xs px-4 py-2 rounded-lg shadow">
+            <div className="absolute left-1/2 top-4 z-[1000] -translate-x-1/2 rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs text-red-700 shadow md:top-16">
               Error: {error}
             </div>
           )}
           <SeaCoolMap
-            height="100%"
+            height="calc(100vh - 56px)"
             onRegionClick={handleRegionClick}
             onDCClick={handleDCClick}
             selectedId={selectedRegion?.id}
@@ -388,10 +414,10 @@ export default function GlobalDashboard() {
         </div>
 
         {panelData && (
-          <div className="w-[420px] flex-shrink-0 border-l border-slate-200 overflow-hidden">
+          <div className="fixed inset-0 top-14 z-50 overflow-y-auto bg-white md:relative md:inset-auto md:top-auto md:z-0 md:w-[420px] md:flex-shrink-0 md:border-l md:border-slate-200 md:bg-white">
             {panelData.type === 'region'
-              ? <AnalysisPanel region={panelData.item} analysis={analysis} loading={loading} onClose={resetPanel} />
-              : <DCAnalysisPanel dc={panelData.item} wri={panelData.wri} estimatedMw={panelData.estimated_mw} analysis={analysis} loading={loading} onClose={resetPanel} />
+              ? <AnalysisPanel region={panelData.item} analysis={analysis} loading={loading} onClose={resetPanel} onViewReport={handleViewReport} />
+              : <DCAnalysisPanel dc={panelData.item} wri={panelData.wri} estimatedMw={panelData.estimated_mw} analysis={analysis} loading={loading} onClose={resetPanel} onViewReport={handleViewReport} />
             }
           </div>
         )}

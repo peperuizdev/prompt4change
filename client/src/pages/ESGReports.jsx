@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { jsPDF } from 'jspdf'
 import MetricCard from '../components/ui/MetricCard'
 import { getRegions } from '../api/client'
@@ -228,6 +229,11 @@ function buildZonePlan(zone = {}, metrics = {}) {
 }
 
 function downloadPDF(metrics, selectedZone, zonePlan) {
+  if (!metrics) {
+    alert('Por favor espera a que carguen los datos')
+    return
+  }
+
   const doc = new jsPDF()
   const date = new Date().toLocaleDateString('es-ES', {
     year: 'numeric',
@@ -319,6 +325,7 @@ function downloadPDF(metrics, selectedZone, zonePlan) {
 }
 
 export default function ESGReports() {
+  const [searchParams] = useSearchParams()
   const [regions, setRegions] = useState([])
   const [selectedZoneId, setSelectedZoneId] = useState('')
 
@@ -336,10 +343,15 @@ export default function ESGReports() {
   const zonePlan = useMemo(() => buildZonePlan(selectedZone, metrics), [selectedZone, metrics])
 
   useEffect(() => {
-    if (!selectedZoneId && zoneOptions[0]) {
+    // Read zone from URL params if provided
+    const zoneParam = searchParams.get('zone')
+    if (zoneParam) {
+      setSelectedZoneId(zoneParam)
+    } else if (!selectedZoneId && zoneOptions[0]) {
+      // Fall back to first zone
       setSelectedZoneId(zoneOptions[0].id)
     }
-  }, [zoneOptions, selectedZoneId])
+  }, [zoneOptions, selectedZoneId, searchParams])
 
   const dateLabel = new Intl.DateTimeFormat('es-ES', {
     day: '2-digit',

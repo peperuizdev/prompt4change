@@ -46,35 +46,37 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
     <div className="flex flex-col" style={{ height }}>
 
       {/* ── Top control bar ── */}
-      <div className="flex items-center gap-3 px-4 h-12 bg-white border-b border-slate-200 shrink-0 flex-wrap">
+      <div className="flex flex-col gap-3 border-b border-slate-200 bg-white px-3 py-3 shrink-0 sm:flex-row sm:items-center sm:px-4 sm:h-12">
 
         {/* Layer tabs */}
-        <div className="flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+        <div className="flex w-full rounded-lg border border-slate-200 bg-slate-50 p-0.5 sm:w-auto">
           <button
             onClick={() => setLayer('water')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-[10px] sm:text-[11px] font-bold transition-all sm:flex-none ${
               layer === 'water' ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-red-500" />
-            Estrés Hídrico
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            <span className="hidden sm:inline">Estrés Hídrico</span>
+            <span className="sm:hidden">Agua</span>
           </button>
           <button
             onClick={() => setLayer('dc')}
-            className={`flex items-center gap-1.5 px-3 py-1 rounded text-[11px] font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-[10px] sm:text-[11px] font-bold transition-all sm:flex-none ${
               layer === 'dc' ? 'bg-white text-[#003366] shadow-sm' : 'text-slate-400 hover:text-slate-600'
             }`}
           >
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            Datacenters
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+            <span className="hidden sm:inline">Datacenters</span>
+            <span className="sm:hidden">DC</span>
           </button>
         </div>
 
-        <div className="w-px h-5 bg-slate-200 shrink-0" />
+        <div className="hidden w-px h-5 bg-slate-200 shrink-0 sm:block" />
 
         {/* Water filters */}
         {layer === 'water' && (
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1">
             {[
               { key: 'all',     label: 'Todas',     dot: null      },
               { key: 'extreme', label: 'Extremo',   dot: '#ef4444' },
@@ -90,7 +92,7 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
                 {f.label}
               </button>
             ))}
-            <span className="text-[11px] text-slate-400 ml-1">{regions.length} regiones · clic para análisis IA</span>
+            <span className="hidden text-[11px] text-slate-400 ml-1 sm:inline">{regions.length} regiones</span>
           </div>
         )}
 
@@ -110,7 +112,7 @@ export default function SeaCoolMap({ height = '100%', onRegionClick, onDCClick, 
         )}
 
         {/* Source */}
-        <div className="ml-auto flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+        <div className="hidden items-center gap-1 text-[10px] font-medium text-slate-400 sm:ml-auto sm:flex">
           {layer === 'water'
             ? <><span className="material-symbols-outlined text-[12px]">verified</span> WRI Aqueduct 4.0 · CARTO · CC BY 4.0</>
             : <><span className="material-symbols-outlined text-[12px]">link</span> PeeringDB · CC BY 4.0</>
