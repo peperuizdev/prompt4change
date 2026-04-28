@@ -18,6 +18,7 @@ class AIService:
         self.provider = settings.ai_provider
         self._openai_client = None
         self._gemini_client = None
+        self._groq_client = None
 
     def _get_openai_client(self):
         """Inicializa el cliente de OpenAI (lazy)."""
@@ -26,6 +27,16 @@ class AIService:
 
             self._openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         return self._openai_client
+
+    def _get_groq_client(self):
+        """Inicializa el cliente de Groq (compatible con OpenAI SDK)."""
+        if self._groq_client is None:
+            from openai import AsyncOpenAI
+            self._groq_client = AsyncOpenAI(
+                api_key=settings.GROQ_API_KEY,
+                base_url="https://api.groq.com/openai/v1",
+            )
+        return self._groq_client
 
     def _get_gemini_client(self):
         """Inicializa el cliente de Gemini (lazy)."""
@@ -58,6 +69,8 @@ class AIService:
             return await self._chat_openai(messages, model, temperature, max_tokens)
         elif self.provider == "gemini":
             return await self._chat_gemini(messages, model, temperature, max_tokens)
+        elif self.provider == "groq":
+            return await self._chat_groq(messages, model, temperature, max_tokens)
         else:
             return (
                 "⚠️ No hay proveedor de IA configurado. "
@@ -75,6 +88,23 @@ class AIService:
         client = self._get_openai_client()
         response = await client.chat.completions.create(
             model=model or settings.OPENAI_MODEL,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+        return response.choices[0].message.content or ""
+
+    async def _chat_groq(
+        self,
+        messages: List[Dict[str, str]],
+        model: Optional[str],
+        temperature: float,
+        max_tokens: int,
+    ) -> str:
+        """Chat con Groq (API compatible con OpenAI)."""
+        client = self._get_groq_client()
+        response = await client.chat.completions.create(
+            model=model or settings.GROQ_MODEL,
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,

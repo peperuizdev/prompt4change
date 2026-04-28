@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#191c1d",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e3e4",
+                    "background": "#f8f9fa",
+                    "on-surface": "#191c1d",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-bright": "#f8f9fa",
+                    "on-secondary-container": "#00743a",
+                    "tertiary": "#2e1900",
+                    "error-container": "#ffdad6",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed": "#2b1700",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#d5e3ff",
+                    "on-secondary-fixed-variant": "#005228",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#43474f",
+                    "primary-container": "#003366",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#663e00",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737780",
+                    "surface-container-high": "#e7e8e9",
+                    "surface": "#f8f9fa",
+                    "on-primary-fixed-variant": "#1f477b",
+                    "on-primary-container": "#799dd6",
+                    "tertiary-fixed": "#ffddb9",
+                    "on-tertiary-container": "#d98a00",
+                    "secondary-fixed": "#6bfe9c",
+                    "tertiary-fixed-dim": "#ffb961",
+                    "primary": "#001e40",
+                    "tertiary-container": "#4b2c00",
+                    "inverse-primary": "#a7c8ff",
+                    "primary-fixed-dim": "#a7c8ff",
+                    "outline-variant": "#c3c6d1",
+                    "surface-dim": "#d9dadb",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-primary-fixed": "#001b3c",
+                    "secondary": "#006d37",
+                    "secondary-fixed-dim": "#4ae183",
+                    "surface-container": "#edeeef",
+                    "on-secondary-fixed": "#00210c",
+                    "secondary-container": "#6bfe9c",
+                    "inverse-surface": "#2e3132",
+                    "surface-tint": "#3a5f94"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "container-max": "1440px",
+                    "lg": "24px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "xl": "40px"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "data-mono": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-sidebar {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            background: #003366;
+            border: 4px solid #ffffff;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background">
+<!-- TopNavBar Shell -->
+<nav class="fixed top-0 w-full z-50 flex justify-between items-center px-10 h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-none">
+<div class="flex items-center gap-2">
+<span class="text-xl font-black tracking-tighter text-[#003366] dark:text-blue-200">SeaCool</span>
+</div>
+<div class="hidden md:flex items-center gap-8">
+<a class="font-['Inter'] text-sm font-bold text-[#003366] dark:text-blue-400 border-b-2 border-[#003366]" href="#">Command Center</a>
+<a class="font-['Inter'] text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-[#003366] transition-colors" href="#">Sustainability</a>
+<a class="font-['Inter'] text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-[#003366] transition-colors" href="#">Operations</a>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="p-2 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined text-slate-600">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-50 rounded-full transition-colors">
+<span class="material-symbols-outlined text-slate-600">settings</span>
+</button>
+</div>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-slate-200 border border-slate-300">
+<img alt="User profile avatar" data-alt="professional portrait of a technical systems manager in a clean minimalist office setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsgGD8lQ9qOqQFhTlnpBEhwAEycpqq3iTakrWcnulN4DetrZ9uyU1_rD_xVKaP08wA12RU2c51_njCenJlt8UMrvTC9WUxDAyi39KRea8UgBYZd24rx5lHzTcP4KXoWBUVtxZc82-fy_XFLRtC4_uWaAbEOMatRrjmfhyxNb8y6wO0Tlj6GijmlleO9Jew_0nh9SmjZKbe4PdgBR_9qaQiZGZoj0Rqp1RSMNHgj_6PyRCIDSLxkAjPq_p_-TKAQaA0nafTXUHavTft"/>
+</div>
+</div>
+</nav>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 flex flex-col p-4 space-y-2 bg-white dark:bg-slate-950 border-r border-slate-100 dark:border-slate-800 glass-sidebar">
+<div class="px-2 py-4 mb-4">
+<h2 class="text-lg font-bold text-[#003366] dark:text-blue-100">Command Center</h2>
+<p class="text-xs text-slate-500 uppercase tracking-widest font-semibold">Thermal Recovery Systems</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-['Inter'] text-sm tracking-wide">Global Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-[#003366] dark:text-blue-300 font-semibold rounded-lg" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+<span class="font-['Inter'] text-sm tracking-wide">AI Agent Monitor</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span class="font-['Inter'] text-sm tracking-wide">Farmer Portal</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-lg transition-transform duration-200 hover:translate-x-1" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span class="font-['Inter'] text-sm tracking-wide">ESG Reports</span>
+</a>
+</nav>
+<div class="pt-4 border-t border-slate-100 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-slate-500 text-sm hover:bg-slate-50 rounded-lg" href="#">
+<span class="material-symbols-outlined">lan</span>
+<span>System Status</span>
+</a>
+<button class="w-full mt-4 bg-[#003366] text-white py-2 px-4 rounded-lg font-bold text-sm active:scale-95 transition-all">
+                Simulate Impact
+            </button>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 p-10 min-h-[calc(100vh-64px)]">
+<header class="mb-10">
+<div class="flex items-center gap-2 text-primary font-label-caps text-label-caps mb-2">
+<span class="material-symbols-outlined text-[16px]">monitoring</span>
+                REAL-TIME MONITORING
+            </div>
+<h1 class="font-display-lg text-display-lg text-primary mb-2">Monitor de Agentes Inteligentes</h1>
+<p class="text-on-surface-variant max-w-2xl font-body-md">Supervisión autónoma del ecosistema SeaCool. Los agentes gestionan la recuperación térmica y la optimización de recursos basándose en variables ambientales.</p>
+</header>
+<!-- Bento Grid Agents -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-12">
+<!-- Agente Agrícola -->
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-green-50 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">agriculture</span>
+</div>
+<span class="px-2 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full">OPTIMAL</span>
+</div>
+<h3 class="font-headline-md text-body-md font-bold mb-1">Agrícola</h3>
+<p class="text-xs text-on-surface-variant mb-4">Control de irrigación térmica</p>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
+<p class="border-l-2 border-secondary pl-2">09:41 - Temp. suelo estable</p>
+<p class="border-l-2 border-secondary pl-2">09:45 - Flujo 2.4L/s OK</p>
+<p class="border-l-2 border-secondary pl-2 opacity-50">09:48 - Escaneo sensores...</p>
+</div>
+</div>
+<!-- Agente Urbana -->
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-primary-container">
+<span class="material-symbols-outlined">location_city</span>
+</div>
+<span class="px-2 py-1 bg-primary-fixed text-on-primary-fixed-variant text-[10px] font-bold rounded-full">ACTIVE</span>
+</div>
+<h3 class="font-headline-md text-body-md font-bold mb-1">Urbana</h3>
+<p class="text-xs text-on-surface-variant mb-4">Refrigeración distrital</p>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
+<p class="border-l-2 border-primary-container pl-2">09:42 - Carga nodo 12: 45%</p>
+<p class="border-l-2 border-primary-container pl-2">09:44 - Delta T: 4.2°C</p>
+<p class="border-l-2 border-primary-container pl-2 opacity-50">09:47 - Redirigiendo excedente</p>
+</div>
+</div>
+<!-- Agente Térmica -->
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-tertiary-container">
+<span class="material-symbols-outlined">thermostat</span>
+</div>
+<span class="px-2 py-1 bg-tertiary-fixed text-on-tertiary-container text-[10px] font-bold rounded-full">RECOVERY</span>
+</div>
+<h3 class="font-headline-md text-body-md font-bold mb-1">Térmica</h3>
+<p class="text-xs text-on-surface-variant mb-4">Captación de calor residual</p>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
+<p class="border-l-2 border-tertiary-container pl-2">09:40 - Intercambiador B ON</p>
+<p class="border-l-2 border-tertiary-container pl-2">09:43 - Eficiencia: 94.2%</p>
+<p class="border-l-2 border-tertiary-container pl-2 opacity-50">09:46 - Balance térmico listo</p>
+</div>
+</div>
+<!-- Agente Distribuidor -->
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined">account_tree</span>
+</div>
+<span class="px-2 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded-full">BALANCED</span>
+</div>
+<h3 class="font-headline-md text-body-md font-bold mb-1">Distribuidor</h3>
+<p class="text-xs text-on-surface-variant mb-4">Logística de fluidos</p>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
+<p class="border-l-2 border-outline pl-2">09:38 - Válvula 4 abierta</p>
+<p class="border-l-2 border-outline pl-2">09:41 - Presión estable</p>
+<p class="border-l-2 border-outline pl-2 opacity-50">09:44 - Sincronizando flujo</p>
+</div>
+</div>
+<!-- Agente Alerta -->
+<div class="bg-white p-6 rounded-xl border-2 border-slate-100 shadow-sm transition-all duration-500 flex flex-col h-full relative overflow-hidden" id="alert-card">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400" id="alert-icon-container">
+<span class="material-symbols-outlined">warning</span>
+</div>
+<span class="px-2 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-full transition-colors duration-500" id="alert-status">STANDBY</span>
+</div>
+<h3 class="font-headline-md text-body-md font-bold mb-1">Alerta</h3>
+<p class="text-xs text-on-surface-variant mb-4">Gestión de emergencias</p>
+<div class="flex-1 bg-slate-50 rounded-lg p-3 font-data-mono text-[10px] text-slate-600 space-y-1 overflow-hidden">
+<p class="border-l-2 border-slate-300 pl-2">09:30 - Sistema nominal</p>
+<p class="border-l-2 border-slate-300 pl-2">09:45 - Monitor activo</p>
+<p class="border-l-2 border-slate-300 pl-2 opacity-50">09:48 - Sin incidencias</p>
+</div>
+<!-- Dynamic Overlay for High Temp -->
+<div class="absolute inset-0 bg-error/5 opacity-0 pointer-events-none transition-opacity duration-500" id="danger-pulse"></div>
+</div>
+</div>
+<!-- Temperature Slider Section -->
+<div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary flex items-center gap-2">
+<span class="material-symbols-outlined">thermostat_auto</span>
+                        Escenario de Temperatura
+                    </h2>
+<p class="text-on-surface-variant font-body-sm mt-1">Simula condiciones ambientales extremas para observar la respuesta de los agentes inteligentes.</p>
+</div>
+<div class="text-right">
+<div class="text-[48px] font-black tracking-tighter text-[#003366] leading-none" id="temp-display">32°C</div>
+<div class="text-label-caps font-label-caps text-on-surface-variant">TEMPERATURA EXTERIOR SIMULADA</div>
+</div>
+</div>
+<div class="relative w-full h-12 flex items-center px-2">
+<input class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-slider transition-all duration-300" id="temp-slider" max="45" min="20" type="range" value="32"/>
+<div class="absolute -bottom-6 left-0 right-0 flex justify-between text-[10px] font-bold text-slate-400 font-label-caps uppercase">
+<span>20°C - Cold</span>
+<span>32.5°C - Nominal</span>
+<span>45°C - Critical</span>
+</div>
+</div>
+<!-- Inline Map Visualization (Asymmetric Decorative Element) -->
+<div class="absolute top-0 right-0 h-full w-1/4 opacity-10 pointer-events-none">
+<img alt="Regional Thermal Map" class="object-cover h-full w-full" data-alt="minimalist topographic map visualization with subtle glowing blue and orange heat points representing thermal distribution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpaRfxpyG7ivugD1GKLfHcw8ntxWSO2AVpmI9PsqRJqtOlkFCQcLg2Yj7ajR7boz9OMErLaaUTzhrgTih2x2QFtO8oyLUbnxiDQvaHC9YSKOp5B_EL78MnPkGU0u3kCRz4BxMsM5HRxgp34bhqMkPlMwdDoPIcGEqbPDuRWH3eF6plG5eD87vSLPjCqtS63oMhOc3BZ-sRqJ_a2kpt23I-N-YhdZ4Njow_ss5S_EQlNvbYXYlXzhzI40Nal_1hooinALFi8cW0QSh3"/>
+</div>
+</div>
+<!-- Footer / Global Metrics -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-white rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-[#003366]">energy_savings_leaf</span>
+</div>
+<div>
+<div class="text-2xl font-bold text-primary tracking-tight">12.4 MW/h</div>
+<div class="text-label-caps font-label-caps text-on-surface-variant">AHORRO ENERGÉTICO TOTAL</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-white rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-secondary">water_drop</span>
+</div>
+<div>
+<div class="text-2xl font-bold text-primary tracking-tight">85,200 L</div>
+<div class="text-label-caps font-label-caps text-on-surface-variant">AGUA RECUPERADA (24H)</div>
+</div>
+</div>
+<div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant flex items-center gap-4">
+<div class="p-3 bg-white rounded-lg shadow-sm">
+<span class="material-symbols-outlined text-tertiary-container">hub</span>
+</div>
+<div>
+<div class="text-2xl font-bold text-primary tracking-tight">99.98%</div>
+<div class="text-label-caps font-label-caps text-on-surface-variant">ESTABILIDAD DEL SISTEMA</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Visual Script Logic (Conceptual for UI state demonstration) -->
+<script>
+        const slider = document.getElementById('temp-slider');
+        const display = document.getElementById('temp-display');
+        const alertCard = document.getElementById('alert-card');
+        const alertStatus = document.getElementById('alert-status');
+        const alertIconContainer = document.getElementById('alert-icon-container');
+        const dangerPulse = document.getElementById('danger-pulse');
+
+        slider.oninput = function() {
+            const val = parseInt(this.value);
+            display.innerText = val + '°C';
+            
+            // Interaction logic for High Temperature
+            if (val >= 40) {
+                alertCard.classList.add('border-error', 'shadow-lg', 'shadow-error/10');
+                alertCard.classList.remove('border-slate-100');
+                alertStatus.innerText = 'CRITICAL';
+                alertStatus.classList.add('bg-error-container', 'text-on-error-container');
+                alertStatus.classList.remove('bg-slate-100', 'text-slate-500');
+                alertIconContainer.classList.add('bg-error-container', 'text-error');
+                alertIconContainer.classList.remove('bg-slate-50', 'text-slate-400');
+                dangerPulse.classList.replace('opacity-0', 'opacity-100');
+                display.classList.add('text-error');
+                display.classList.remove('text-[#003366]');
+            } else {
+                alertCard.classList.remove('border-error', 'shadow-lg', 'shadow-error/10');
+                alertCard.classList.add('border-slate-100');
+                alertStatus.innerText = val >= 35 ? 'WARNING' : 'STANDBY';
+                
+                if (val >= 35) {
+                    alertStatus.classList.add('bg-tertiary-fixed', 'text-on-tertiary-container');
+                    alertStatus.classList.remove('bg-slate-100', 'text-slate-500', 'bg-error-container', 'text-on-error-container');
+                } else {
+                    alertStatus.classList.add('bg-slate-100', 'text-slate-500');
+                    alertStatus.classList.remove('bg-tertiary-fixed', 'text-on-tertiary-container', 'bg-error-container', 'text-on-error-container');
+                }
+
+                alertIconContainer.classList.remove('bg-error-container', 'text-error');
+                alertIconContainer.classList.add('bg-slate-50', 'text-slate-400');
+                dangerPulse.classList.replace('opacity-100', 'opacity-0');
+                display.classList.remove('text-error');
+                display.classList.add('text-[#003366]');
+            }
+        };
+    </script>
+</body></html>

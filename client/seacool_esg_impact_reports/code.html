@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#191c1d",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e1e3e4",
+                    "background": "#f8f9fa",
+                    "on-surface": "#191c1d",
+                    "surface-container-low": "#f3f4f5",
+                    "surface-bright": "#f8f9fa",
+                    "on-secondary-container": "#00743a",
+                    "tertiary": "#2e1900",
+                    "error-container": "#ffdad6",
+                    "on-error-container": "#93000a",
+                    "on-tertiary-fixed": "#2b1700",
+                    "on-error": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "primary-fixed": "#d5e3ff",
+                    "on-secondary-fixed-variant": "#005228",
+                    "on-primary": "#ffffff",
+                    "on-surface-variant": "#43474f",
+                    "primary-container": "#003366",
+                    "error": "#ba1a1a",
+                    "on-tertiary-fixed-variant": "#663e00",
+                    "on-secondary": "#ffffff",
+                    "outline": "#737780",
+                    "surface-container-high": "#e7e8e9",
+                    "surface": "#f8f9fa",
+                    "on-primary-fixed-variant": "#1f477b",
+                    "on-primary-container": "#799dd6",
+                    "tertiary-fixed": "#ffddb9",
+                    "on-tertiary-container": "#d98a00",
+                    "secondary-fixed": "#6bfe9c",
+                    "tertiary-fixed-dim": "#ffb961",
+                    "primary": "#001e40",
+                    "tertiary-container": "#4b2c00",
+                    "inverse-primary": "#a7c8ff",
+                    "primary-fixed-dim": "#a7c8ff",
+                    "outline-variant": "#c3c6d1",
+                    "surface-dim": "#d9dadb",
+                    "inverse-on-surface": "#f0f1f2",
+                    "surface-container-highest": "#e1e3e4",
+                    "on-primary-fixed": "#001b3c",
+                    "secondary": "#006d37",
+                    "secondary-fixed-dim": "#4ae183",
+                    "surface-container": "#edeeef",
+                    "on-secondary-fixed": "#00210c",
+                    "secondary-container": "#6bfe9c",
+                    "inverse-surface": "#2e3132",
+                    "surface-tint": "#3a5f94"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "container-max": "1440px",
+                    "lg": "24px",
+                    "unit": "4px",
+                    "gutter": "24px",
+                    "md": "16px",
+                    "xs": "4px",
+                    "xl": "40px"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "data-mono": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "data-mono": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .sdg-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sdg-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+<!-- TopNavBar -->
+<header class="fixed top-0 w-full z-50 flex justify-between items-center px-10 h-16 bg-white border-b border-slate-200 shadow-sm">
+<div class="flex items-center gap-4">
+<span class="text-xl font-black tracking-tighter text-[#003366]">SeaCool</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-lg">
+<span class="material-symbols-outlined text-slate-500 text-sm">search</span>
+<input class="bg-transparent border-none text-sm focus:ring-0 w-48 font-body-sm" placeholder="Search reports..." type="text"/>
+</div>
+<div class="flex items-center gap-4 text-slate-500">
+<button class="material-symbols-outlined hover:text-[#003366] transition-colors">notifications</button>
+<button class="material-symbols-outlined hover:text-[#003366] transition-colors">settings</button>
+<button class="material-symbols-outlined hover:text-[#003366] transition-colors">help</button>
+<div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+<img alt="User profile avatar" data-alt="Professional corporate profile avatar of a sustainability executive in a minimalist flat illustration style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjrv-FcZ7Gea782qo-SLSvz6N5apncfSHwEwXnW0xcQg7Tyv7lWZV8wt3GowcBVS7B59JyM3BypXNrjj9fShH7_bwxkFhuXjNQEq-n379qgIxra9YDGAsOuBD6bntSrK_fxDC9rolhp6rzmDtNAZSDLdjIH9i03k6DJbWahWf-xYcZUugzzCf0TCp-C2-H2nfrPpyowwlBdlcHBMdUIfEJ9DLi7LEOL2Dokd4DnkkyZ74tDw8_le6CeBF-bLjUvZO-Rju8yNuJt9uT"/>
+</div>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<nav class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 flex flex-col p-4 space-y-2 bg-white border-r border-slate-100 z-40">
+<div class="px-4 py-6">
+<h2 class="text-lg font-bold text-[#003366] font-headline-md">Command Center</h2>
+<p class="text-xs text-slate-500 tracking-wide font-label-caps">THERMAL RECOVERY SYSTEMS</p>
+</div>
+<div class="space-y-1">
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-transform duration-200 hover:translate-x-1 font-body-sm" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Global Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-transform duration-200 hover:translate-x-1 font-body-sm" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span>AI Agent Monitor</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 text-slate-600 hover:bg-slate-50 rounded-lg transition-transform duration-200 hover:translate-x-1 font-body-sm" href="#">
+<span class="material-symbols-outlined">agriculture</span>
+<span>Farmer Portal</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 bg-blue-50 text-[#003366] font-semibold rounded-lg transition-transform duration-200 hover:translate-x-1 font-body-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span>ESG Reports</span>
+</a>
+</div>
+<div class="mt-auto space-y-1 border-t border-slate-100 pt-4">
+<button class="w-full flex items-center justify-center gap-2 bg-[#003366] text-white py-2.5 rounded-lg active:scale-95 transition-all text-sm font-medium mb-4">
+                Simulate Impact
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg font-body-sm" href="#">
+<span class="material-symbols-outlined text-sm">lan</span>
+<span>System Status</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-slate-600 hover:bg-slate-50 rounded-lg font-body-sm" href="#">
+<span class="material-symbols-outlined text-sm">description</span>
+<span>Documentation</span>
+</a>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="pl-64 pt-16 min-h-screen">
+<div class="p-10 max-w-7xl mx-auto">
+<!-- Header Section -->
+<div class="flex justify-between items-end mb-10">
+<div>
+<h1 class="font-display-lg text-primary mb-2">Impacto ESG</h1>
+<p class="text-on-surface-variant font-body-md max-w-2xl">Visualización técnica del desempeño de SeaCool bajo los estándares de los Objetivos de Desarrollo Sostenible (ODS).</p>
+</div>
+<button class="flex items-center gap-2 bg-secondary text-on-secondary px-6 py-3 rounded-lg font-label-caps hover:opacity-90 transition-all shadow-md">
+<span class="material-symbols-outlined">download</span>
+                    Exportar Informe para Inversores
+                </button>
+</div>
+<!-- Bento Grid Stats -->
+<div class="grid grid-cols-12 gap-6 mb-10">
+<!-- Main KPI Card -->
+<div class="col-span-12 lg:col-span-8 bg-white p-8 rounded-xl border border-outline-variant shadow-sm relative overflow-hidden">
+<div class="absolute top-0 right-0 p-8 opacity-10">
+<span class="material-symbols-outlined text-[120px]">eco</span>
+</div>
+<div class="relative z-10">
+<span class="text-label-caps text-secondary mb-4 block uppercase tracking-widest">Resumen de Eficiencia Térmica</span>
+<div class="flex items-baseline gap-4 mb-6">
+<span class="text-6xl font-black text-primary font-display-lg">14.2k</span>
+<span class="text-headline-md text-on-secondary-container">Toneladas CO₂</span>
+</div>
+<p class="font-body-md text-on-surface-variant max-w-md">Reducción acumulada de emisiones mediante sistemas de recuperación de calor residual en plantas industriales costeras.</p>
+<div class="mt-8 grid grid-cols-3 gap-8 border-t border-slate-100 pt-8">
+<div>
+<span class="block text-label-caps text-slate-400 mb-1">Impacto 2024</span>
+<span class="text-headline-md font-bold text-primary">+22%</span>
+</div>
+<div>
+<span class="block text-label-caps text-slate-400 mb-1">Eficiencia Energética</span>
+<span class="text-headline-md font-bold text-primary">94.8%</span>
+</div>
+<div>
+<span class="block text-label-caps text-slate-400 mb-1">Retorno Social</span>
+<span class="text-headline-md font-bold text-primary">1:3.4</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Data Cards -->
+<div class="col-span-12 md:col-span-6 lg:col-span-4 bg-surface-container-low p-8 rounded-xl border border-outline-variant flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 bg-secondary-container rounded-lg flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-on-secondary-container">water_drop</span>
+</div>
+<h3 class="text-headline-md font-bold text-primary mb-2">8,450</h3>
+<p class="text-label-caps text-on-secondary-container mb-4">FAMILIAS BENEFICIADAS</p>
+<p class="text-body-sm text-on-surface-variant">Acceso a agua potable generado mediante procesos de desalinización de bajo impacto.</p>
+</div>
+<div class="mt-6 pt-4 border-t border-outline-variant/30">
+<div class="flex justify-between items-center text-xs font-bold text-secondary">
+<span>META 10k</span>
+<span>84.5%</span>
+</div>
+<div class="w-full h-1.5 bg-white rounded-full mt-2 overflow-hidden">
+<div class="h-full bg-secondary w-[84.5%]"></div>
+</div>
+</div>
+</div>
+<div class="col-span-12 md:col-span-6 lg:col-span-4 bg-white p-8 rounded-xl border border-outline-variant shadow-sm flex flex-col justify-between">
+<div>
+<div class="w-12 h-12 bg-tertiary-container rounded-lg flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-tertiary-fixed">agriculture</span>
+</div>
+<h3 class="text-headline-md font-bold text-primary mb-2">1,240</h3>
+<p class="text-label-caps text-on-tertiary-container mb-4">HECTÁREAS SALVADAS</p>
+<p class="text-body-sm text-on-surface-variant">Cultivos protegidos mediante sistemas de micro-clima y riego sostenible.</p>
+</div>
+<div class="h-24 mt-4 bg-surface-variant/20 rounded-lg flex items-end p-2 gap-1">
+<div class="bg-tertiary-container/30 w-full rounded-t" style="height: 40%"></div>
+<div class="bg-tertiary-container/30 w-full rounded-t" style="height: 60%"></div>
+<div class="bg-tertiary-container/30 w-full rounded-t" style="height: 55%"></div>
+<div class="bg-tertiary-container/30 w-full rounded-t" style="height: 80%"></div>
+<div class="bg-tertiary-container w-full rounded-t" style="height: 95%"></div>
+</div>
+</div>
+<!-- ODS Grid -->
+<div class="col-span-12 lg:col-span-8 bg-[#001e40] p-8 rounded-xl text-white">
+<div class="flex justify-between items-start mb-8">
+<div>
+<h3 class="text-headline-md font-bold mb-1">Alineación Estratégica ODS</h3>
+<p class="text-blue-300 text-body-sm">Contribución directa a los Objetivos de Desarrollo Sostenible de la ONU.</p>
+</div>
+<span class="bg-blue-900/50 px-3 py-1 rounded text-[10px] font-bold tracking-widest border border-blue-700">UNITED NATIONS STANDARD</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+<!-- ODS 2 -->
+<div class="sdg-card bg-[#e5243b] p-4 rounded-lg aspect-square flex flex-col justify-between cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="text-2xl font-black opacity-40">2</span>
+<span class="material-symbols-outlined text-3xl">psychiatry</span>
+</div>
+<span class="font-bold text-[10px] leading-tight uppercase">Hambre Cero (Agricultura Sostenible)</span>
+</div>
+<!-- ODS 6 -->
+<div class="sdg-card bg-[#26bde2] p-4 rounded-lg aspect-square flex flex-col justify-between cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="text-2xl font-black opacity-40">6</span>
+<span class="material-symbols-outlined text-3xl">water_full</span>
+</div>
+<span class="font-bold text-[10px] leading-tight uppercase">Agua Limpia y Saneamiento</span>
+</div>
+<!-- ODS 7 -->
+<div class="sdg-card bg-[#fcc30b] p-4 rounded-lg aspect-square flex flex-col justify-between cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="text-2xl font-black opacity-40">7</span>
+<span class="material-symbols-outlined text-3xl">bolt</span>
+</div>
+<span class="font-bold text-[10px] leading-tight uppercase">Energía Asequible y No Contaminante</span>
+</div>
+<!-- ODS 13 -->
+<div class="sdg-card bg-[#3f7e44] p-4 rounded-lg aspect-square flex flex-col justify-between cursor-pointer">
+<div class="flex justify-between items-start">
+<span class="text-2xl font-black opacity-40">13</span>
+<span class="material-symbols-outlined text-3xl">public</span>
+</div>
+<span class="font-bold text-[10px] leading-tight uppercase">Acción por el Clima</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Detailed Impact List -->
+<div class="bg-white rounded-xl border border-outline-variant overflow-hidden shadow-sm">
+<div class="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+<h4 class="font-headline-md text-primary font-bold">Métricas Detalladas de Impacto Social</h4>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-slate-200 rounded transition-colors"><span class="material-symbols-outlined text-slate-600">filter_list</span></button>
+<button class="p-2 hover:bg-slate-200 rounded transition-colors"><span class="material-symbols-outlined text-slate-600">more_vert</span></button>
+</div>
+</div>
+<div class="p-0">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest text-label-caps text-slate-500 uppercase tracking-tighter">
+<th class="px-8 py-4 font-bold border-b border-slate-100">Indicador de Impacto</th>
+<th class="px-8 py-4 font-bold border-b border-slate-100">Estado</th>
+<th class="px-8 py-4 font-bold border-b border-slate-100">Valor Acumulado</th>
+<th class="px-8 py-4 font-bold border-b border-slate-100">Proyección Q4</th>
+<th class="px-8 py-4 font-bold border-b border-slate-100 text-right">Verificado</th>
+</tr>
+</thead>
+<tbody class="text-body-sm">
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-8 py-5 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="font-semibold text-primary">Reducción de Huella Hídrica</span>
+</div>
+</td>
+<td class="px-8 py-5 border-b border-slate-100">
+<span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-[10px] font-bold">OPTIMAL</span>
+</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">1.2M m³</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">+12%</td>
+<td class="px-8 py-5 border-b border-slate-100 text-right">
+<span class="material-symbols-outlined text-secondary text-lg" style="font-variation-settings: 'FILL' 1;">verified</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-8 py-5 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="font-semibold text-primary">Ahorro Térmico Industrial</span>
+</div>
+</td>
+<td class="px-8 py-5 border-b border-slate-100">
+<span class="bg-secondary-container text-on-secondary-container px-2 py-1 rounded text-[10px] font-bold">OPTIMAL</span>
+</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">420 GW/h</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">+8.4%</td>
+<td class="px-8 py-5 border-b border-slate-100 text-right">
+<span class="material-symbols-outlined text-secondary text-lg" style="font-variation-settings: 'FILL' 1;">verified</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors">
+<td class="px-8 py-5 border-b border-slate-100">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-tertiary-container"></div>
+<span class="font-semibold text-primary">Recuperación de Suelo Salino</span>
+</div>
+</td>
+<td class="px-8 py-5 border-b border-slate-100">
+<span class="bg-tertiary-container text-tertiary-fixed-dim px-2 py-1 rounded text-[10px] font-bold">RECOVERY</span>
+</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">15,400 m²</td>
+<td class="px-8 py-5 border-b border-slate-100 font-data-mono">+3.2%</td>
+<td class="px-8 py-5 border-b border-slate-100 text-right">
+<span class="material-symbols-outlined text-slate-300 text-lg">pending</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Visual Context -->
+<div class="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
+<div class="h-64 rounded-xl overflow-hidden relative group">
+<img alt="Ocean desalinization plant" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="high-tech coastal water desalinization plant at dawn with sleek industrial architecture and blue ocean in background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD_3sdQqVzs7HuTKZ2o0kjyneQfH5UeHnVd-QJ2jxKMEKH2wGEs6CfvqZ4fzozMUrGS8khOdXrearIpQHNDVuoEu2wqO8bYD6QHH3p2AP83xn4ddiFZK1-eW9CqQpMD1msG20a8Z03v8R7Pb5JlPuIi45glzcFSC2S7SI58xosOT_TmvdgjSS9itMM-JnKQ7ihIYMc1vEQVf5ks2eiv79AZvQso4iIb9mOfeGRTJKOJkJMTK_gLZkpMMe7JqfNrJHXaPi-sRYmRhh3c"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent flex items-end p-6">
+<div>
+<span class="text-white font-bold block">Proyecto SeaCool Delta</span>
+<span class="text-blue-200 text-xs">Instalación activa - Generando 500m³/día</span>
+</div>
+</div>
+</div>
+<div class="h-64 rounded-xl overflow-hidden relative group">
+<img alt="Sustainable agriculture" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="rows of vibrant green crops under modern irrigation system in a clear sunny field with blue sky" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBSTyLYZsSH2d74GR7IqI_KESfAX3E-bFz4TkqktMLt4c8SMf0rw--bF11iJvxaFfyAYacZErWff1GJMu5pStJIxY08_pARVe-Y7a1prQ8rXtgT-wQ4uBGdFg-v9LaqltShT0WSyHFcM2O-Gio2Xm4Qv4cadCGOdCGAdZFgwV4aH5JQilN5qUFSIrJ067Jem6Z1FMeaTG6mmC0FnpU--jYLyz3ZpQKYn-n2151pRTAIkQLl6wDHaNUZ0-hTFPIemszwwf1RRmDYcEi"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent flex items-end p-6">
+<div>
+<span class="text-white font-bold block">Impacto en Comunidad Local</span>
+<span class="text-blue-200 text-xs">Zonas de cultivo recuperadas - Q3 2024</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB Suppression Rule Followed: No FAB on ESG Details Screen -->
+</body></html>

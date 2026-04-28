@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = "gpt-4o"
     GOOGLE_API_KEY: str = ""
     GOOGLE_MODEL: str = "gemini-2.0-flash"
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    HF_TOKEN: str = ""
 
     # --- Supabase ---
     SUPABASE_URL: str = ""
@@ -49,6 +52,8 @@ class Settings(BaseSettings):
         """Detecta qué proveedor de IA tiene clave configurada."""
         if self.GOOGLE_API_KEY and self.GOOGLE_API_KEY != "tu-clave-gemini-aqui":
             return "gemini"
+        if self.GROQ_API_KEY and self.GROQ_API_KEY != "":
+            return "groq"
         if self.OPENAI_API_KEY and self.OPENAI_API_KEY != "sk-tu-clave-aqui":
             return "openai"
         return "none"
