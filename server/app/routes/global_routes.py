@@ -1,155 +1,76 @@
-"""
-SeaCool Global - Endpoints para análisis mundial de estrés hídrico.
-"""
-
+import json
 import time
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pathlib import Path
 import httpx
-
-from app.services.global_service import global_service
+from fastapi import APIRouter, HTTPException, Body
+from typing import Dict, Any
 
 router = APIRouter()
 
-# Simple in-memory cache (TTL 1 hour) to avoid hammering PeeringDB
-_dc_cache:  dict = {"data": None, "ts": 0}
-_wri_cache: dict = {"data": None, "ts": 0}
-_DC_TTL  = 3600
-_WRI_TTL = 86400   # WRI data is static — cache 24h
+CACHE_FILE = Path(__file__).parent.parent.parent / "data" / "datacenters_cache.json"
+CACHE_TTL = 3600 * 24
 
-_WRI_CARTO = "https://wri-rw.carto.com/api/v2/sql"
-_WRI_SQL = (
-    "SELECT pfaf_id, sub_name, bws_score, bws_cat, bws_label, "
-    "ST_X(ST_Centroid(the_geom)) AS lon, ST_Y(ST_Centroid(the_geom)) AS lat "
-    "FROM wat_050_aqueduct_baseline_water_stress "
-    "WHERE bws_cat >= 3 ORDER BY bws_score DESC"
-)
-
+FALLBACK_DCS = [
+    {"id": 1001, "name": "Equinix MD2", "city": "Madrid", "country": "ES", "lat": 40.4168, "lng": -3.7038, "net_count": 350},
+    {"id": 1010, "name": "DataCenter Almería", "city": "Almería", "country": "ES", "lat": 36.834, "lng": -2.4637, "net_count": 45},
+]
 
 async def _fetch_datacenters():
-    now = time.time()
-    if _dc_cache["data"] is not None and now - _dc_cache["ts"] < _DC_TTL:
-        return _dc_cache["data"]
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                cache = json.load(f)
+                if time.time() - cache.get("timestamp", 0) < CACHE_TTL:
+                    return cache.get("data")
+        except: pass
+    
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get("https://www.peeringdb.com/api/fac", params={"limit": 1000, "fields": "id,name,city,country,latitude,longitude,net_count"})
+            if resp.status_code == 200:
+                raw = resp.json().get("data", [])
+                result = [{"id": f["id"], "name": f["name"], "city": f.get("city", ""), "country": f.get("country", ""), "lat": float(f["latitude"]), "lng": float(f["longitude"]), "net_count": f.get("net_count", 0)} for f in raw if f.get("latitude") and f.get("longitude")]
+                CACHE_FILE.parent.mkdir(parents=True, exist_ok=True)
+                with open(CACHE_FILE, "w", encoding="utf-8") as f: json.dump({"timestamp": time.time(), "data": result}, f)
+                return result
+    except: pass
+    return FALLBACK_DCS
 
-    async with httpx.AsyncClient(timeout=20) as client:
-        resp = await client.get(
-            "https://www.peeringdb.com/api/fac",
-            params={"limit": 5000, "fields": "id,name,city,country,latitude,longitude,net_count"},
-        )
-        resp.raise_for_status()
-        raw = resp.json().get("data", [])
-
-    result = [
-        {
-            "id": f["id"],
-            "name": f["name"],
-            "city": f.get("city", ""),
-            "country": f.get("country", ""),
-            "lat": float(f["latitude"]),
-            "lng": float(f["longitude"]),
-            "net_count": f.get("net_count", 0),
-        }
-        for f in raw
-        if f.get("latitude") and f.get("longitude")
-    ]
-
-    _dc_cache["data"] = result
-    _dc_cache["ts"] = now
-    return result
-
-
-class AnalyzeRequest(BaseModel):
-    region_id: str
-
-class AnalyzeDCRequest(BaseModel):
-    id:        int
-    name:      str
-    city:      str
-    country:   str
-    lat:       float
-    lng:       float
-    net_count: int
-
-
-@router.get(
-    "/regions",
-    summary="Listado de regiones con estrés hídrico",
-    description="Devuelve las ~35 zonas costeras con mayor estrés hídrico mundial (datos WRI Aqueduct 2023).",
-)
+@router.get("/regions")
 async def get_regions():
+    from app.services.global_service import global_service
     return global_service.get_regions()
 
-
-@router.get(
-    "/wri-basins",
-    summary="Cuencas hídricas WRI Aqueduct (datos reales)",
-    description="Devuelve cuencas con estrés hídrico Alto o Extremo directamente desde WRI CARTO (caché 24h).",
-)
-async def get_wri_basins():
-    now = time.time()
-    if _wri_cache["data"] is not None and now - _wri_cache["ts"] < _WRI_TTL:
-        return _wri_cache["data"]
-
-    try:
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(_WRI_CARTO, data={"q": _WRI_SQL})
-            resp.raise_for_status()
-            raw = resp.json().get("rows", [])
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Error al consultar WRI CARTO: {e}")
-
-    result = [
-        {
-            "id": r["pfaf_id"],
-            "name": r.get("sub_name", ""),
-            "bws_score": round(r["bws_score"], 2),
-            "bws_cat":   r["bws_cat"],
-            "bws_label": r["bws_label"],
-            "lat": round(r["lat"], 4),
-            "lng": round(r["lon"], 4),
-        }
-        for r in raw
-        if r.get("lat") is not None and r.get("lon") is not None
-    ]
-
-    _wri_cache["data"] = result
-    _wri_cache["ts"]   = now
-    return result
-
-
-@router.get(
-    "/datacenters",
-    summary="Datacenters globales (PeeringDB)",
-    description="Devuelve los datacenters con coordenadas de PeeringDB (caché 1h).",
-)
+@router.get("/datacenters")
 async def get_datacenters():
-    try:
-        return await _fetch_datacenters()
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Error al consultar PeeringDB: {e}")
+    return await _fetch_datacenters()
 
+# Endpoint para análisis de REGIONES (POST)
+@router.post("/analyze")
+async def analyze_region(body: Dict[str, Any] = Body(...)):
+    from app.services.global_service import global_service
+    region_id = body.get("region_id")
+    if not region_id:
+        raise HTTPException(status_code=400, detail="region_id is required")
+    return await global_service.analyze(region_id)
 
-@router.post(
-    "/analyze-dc",
-    summary="Análisis SeaCool para un datacenter real",
-    description="Cruza las coordenadas del DC con WRI Aqueduct y estima calor residual desde net_count.",
-)
-async def analyze_dc(request: AnalyzeDCRequest):
-    result = await global_service.analyze_dc(request.model_dump())
-    return result
-
-
-@router.post(
-    "/analyze",
-    summary="Análisis multiagente para una región",
-    description=(
-        "Ejecuta el análisis SeaCool para una región concreta: "
-        "4 agentes (Hídrico, Térmico, Distribuidor, Impacto) evalúan "
-        "el potencial y generan un pitch para gobiernos."
-    ),
-)
-async def analyze_region(request: AnalyzeRequest):
-    result = await global_service.analyze(request.region_id)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
+# Endpoint para análisis de DATACENTERS (POST)
+@router.post("/analyze-dc")
+async def analyze_dc(body: Dict[str, Any] = Body(...)):
+    from app.services.global_service import global_service
+    # Aseguramos que los nombres de los campos coincidan con lo que envía el front
+    # Si el front envía latitude/longitude en lugar de lat/lng, lo mapeamos
+    dc_data = {
+        "id": body.get("id", 999),
+        "name": body.get("name", "Unknown DC"),
+        "city": body.get("city", "Unknown City"),
+        "country": body.get("country", "??"),
+        "lat": body.get("lat") or body.get("latitude"),
+        "lng": body.get("lng") or body.get("longitude"),
+        "net_count": body.get("net_count", 0)
+    }
+    
+    if dc_data["lat"] is None or dc_data["lng"] is None:
+        raise HTTPException(status_code=400, detail="Coordinates (lat/lng) are required")
+        
+    return await global_service.analyze_dc(dc_data)
