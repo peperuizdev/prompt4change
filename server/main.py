@@ -6,6 +6,7 @@ Listo para adaptar al reto específico de la hackathon.
 """
 
 from contextlib import asynccontextmanager
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +14,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.database.connection import init_supabase
 from app.routes import ai_routes, health_routes, seacool_routes, aqualoop_routes, global_routes
+
+
+frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
+allowed_origins = list(settings.cors_origins_list)
+if frontend_url and frontend_url not in allowed_origins:
+    allowed_origins.append(frontend_url)
 
 
 @asynccontextmanager
@@ -40,7 +47,7 @@ app = FastAPI(
 # --- CORS ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -73,5 +80,5 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=settings.APP_PORT,
-        reload=settings.APP_DEBUG,
+        reload=settings.APP_DEBUG and settings.APP_ENV == "development",
     )
